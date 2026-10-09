@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowRight, CalendarDays, Code2, Languages, Link2, MailCheck, ShieldCheck, Stethoscope } from "lucide-react";
+import { ArrowRight, CalendarDays, Check, Code2, Languages, Link2, MailCheck, Play, ShieldCheck, Stethoscope } from "lucide-react";
 import Link from "next/link";
 import { BookingDemo } from "@/components/marketing/booking-demo";
 import { DEMO_BUSINESS } from "@/components/marketing/demo-business";
@@ -19,31 +19,52 @@ export default async function LandingPage() {
   const my = locale === "my";
   return (
     <>
-      {/* First viewport: the promise beside a working booking card. */}
-      <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 pt-12 pb-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,540px)] lg:gap-14 lg:pt-20 lg:pb-16">
+      {/* First viewport: the promise beside a working booking card. Clipped
+          sideways so the backdrop's blobs never widen the page. */}
+      <section className="mx-auto grid max-w-6xl items-center gap-12 overflow-x-clip px-4 pt-12 pb-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)] lg:gap-16 lg:pt-20 lg:pb-16">
         <div className="grid content-center gap-6">
+          <p className="flex items-center gap-3 text-xs font-medium tracking-[0.18em] text-sage-deep uppercase">
+            {t.hero.eyebrow}
+            <span aria-hidden className="h-px w-12 bg-sage-deep/40" />
+          </p>
           <h1
             className={cn(
-              "leading-[1.02] font-medium tracking-[-0.035em]",
-              my ? "max-w-[22ch] text-[clamp(1.9rem,3.4vw,2.9rem)]" : "max-w-[15ch] text-[clamp(2.6rem,5.6vw,4.5rem)]",
+              "font-medium tracking-[-0.035em]",
+              my ? "max-w-[22ch] text-[clamp(1.9rem,3.4vw,2.9rem)]" : "max-w-[16ch] text-[clamp(2.6rem,5.6vw,4.5rem)]",
+              // After the size: tailwind-merge drops a line-height set before an arbitrary text size.
+              "leading-[1.04]",
             )}
           >
-            <Phrases text={t.hero.title} />
+            {t.hero.title.before ? <Phrases text={t.hero.title.before} /> : null}{" "}
+            <span className="swoosh text-sage-deep">
+              <Phrases text={t.hero.title.accent} />
+            </span>{" "}
+            {t.hero.title.after ? <Phrases text={t.hero.title.after} /> : null}
           </h1>
           <p className="max-w-md text-base leading-relaxed text-muted-foreground">{t.hero.body}</p>
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <Link href="/sign-up" className={pillCta()}>
               {t.hero.cta} <ArrowRight />
             </Link>
-            <a href="#match" className={pillSecondary()}>
-              {t.hero.seeMatch} <ArrowDown />
+            <a href="#match" className={cn(pillSecondary(), "pl-2.5 ring-1 ring-border")}>
+              <span aria-hidden className="grid size-7 place-items-center rounded-full bg-sage-deep text-white">
+                <Play className="size-3 translate-x-px fill-current" />
+              </span>
+              {t.hero.seeMatch}
             </a>
           </div>
-          <p className="text-xs text-muted-foreground">{t.hero.note}</p>
+          <ul className="flex flex-wrap gap-x-6 gap-y-2 pt-1 text-sm text-muted-foreground">
+            {t.hero.points.map((point) => (
+              <li key={point} className="flex items-center gap-2">
+                <span aria-hidden className="grid size-5 place-items-center rounded-full bg-sage-deep text-white">
+                  <Check className="size-3" strokeWidth={3} />
+                </span>
+                {point}
+              </li>
+            ))}
+          </ul>
         </div>
-        <div className="sage-glow rounded-[2rem] p-3 sm:p-5">
-          <BookingDemo />
-        </div>
+        <BookingDemo className="gap-8 lg:-mr-2" backdrop={<HeroBackdrop />} />
       </section>
 
       <section id="match" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-6 sm:px-6">
@@ -106,5 +127,21 @@ export default async function LandingPage() {
         </div>
       </section>
     </>
+  );
+}
+
+/** Organic sage shapes and marks behind the hero's booking card. */
+function HeroBackdrop() {
+  return (
+    <div aria-hidden className="pointer-events-none absolute -inset-x-3 -top-8 -bottom-6 -z-10 sm:-inset-x-8 sm:-top-12">
+      <div className="absolute bottom-0 -left-2 h-3/5 w-1/2 rounded-[58%_42%_48%_52%/52%_46%_54%_48%] bg-sage-soft/70" />
+      <div className="sage-glow absolute inset-y-0 right-0 left-[22%] rounded-[46%_54%_40%_60%/34%_42%_58%_66%]" />
+      <svg viewBox="0 0 40 40" className="absolute -top-3 right-1 size-10 text-sage-deep sm:-right-3">
+        <path d="M8 18 L3 13 M18 12 L19 3 M28 16 L35 9" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      </svg>
+      <svg viewBox="0 0 40 40" className="absolute right-2 -bottom-8 size-12 text-sage-soft sm:-right-6">
+        {[6, 20, 34].flatMap((x) => [6, 20, 34].map((y) => <circle key={`${x}-${y}`} cx={x} cy={y} r="2.5" fill="currentColor" />))}
+      </svg>
+    </div>
   );
 }

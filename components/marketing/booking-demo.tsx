@@ -1,7 +1,7 @@
 "use client";
 
-import { Check } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Check, Phone } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { demoApi } from "@/components/booking/api";
 import { Avatar } from "@/components/ui/avatar";
 import { useSiteCopy } from "@/components/i18n/site-locale";
@@ -28,9 +28,10 @@ const tz = DEMO_BUSINESS.timezone;
 /**
  * A clinic's booking card: each doctor row shows their next open times; tapping
  * one opens an inline form that ends in a stamped confirmation. Runs on the
- * offline demo API, so nothing is saved.
+ * offline demo API, so nothing is saved. `backdrop` is drawn behind the card
+ * only, so the caption below it always sits on the plain page.
  */
-export function BookingDemo({ className }: { className?: string }) {
+export function BookingDemo({ className, backdrop }: { className?: string; backdrop?: ReactNode }) {
   const { locale, t } = useSiteCopy();
   // Shared formatter: identical on server and client in both languages.
   const fmtTime = { format: (d: Date) => formatTime(d, tz, locale) };
@@ -81,113 +82,119 @@ export function BookingDemo({ className }: { className?: string }) {
 
   return (
     <figure className={cn("grid gap-3", className)}>
-      <div className="rounded-[1.5rem] bg-background p-5 shadow-[0_24px_48px_-24px_oklch(0.2_0.04_140/0.5)] sm:p-6">
-        <header className="flex flex-wrap items-start justify-between gap-3 pb-3">
-          <div className="grid gap-0.5">
-            <p className="text-xl font-medium tracking-tight">{t.demo.clinic}</p>
-          </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground tabular-nums">
-            <span aria-hidden className="size-1.5 rounded-full bg-primary" />
-            {t.demo.hours}
-          </span>
-        </header>
+      <div className="relative isolate">
+        {backdrop}
+        <div className="rounded-[1.5rem] bg-background p-5 shadow-[0_24px_48px_-24px_oklch(0.2_0.04_140/0.5)] sm:p-6">
+          <header className="flex flex-wrap items-start justify-between gap-3 pb-3">
+            <div className="grid gap-0.5">
+              <p className="text-xl font-medium tracking-tight">{t.demo.clinic}</p>
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground tabular-nums">
+              <span aria-hidden className="size-1.5 rounded-full bg-primary" />
+              {t.demo.hours}
+            </span>
+          </header>
 
-        <ul className="divide-y">
-          {DOCTORS.map((d) => {
-            const provider = DEMO_BUSINESS.providers.find((p) => p.id === d.id)!;
-            const copy = t.demo.doctors[d.id];
-            const row = slots[d.id];
-            const open = selected?.doctorId === d.id;
-            const isBooked = booked?.doctorId === d.id;
-            return (
-              <li key={d.id} className="py-3.5">
-                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <Avatar name={provider.name} size="lg" />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{copy.name}</p>
-                      <p className="truncate text-xs text-muted-foreground">{copy.credentials}</p>
+          <ul className="divide-y">
+            {DOCTORS.map((d) => {
+              const provider = DEMO_BUSINESS.providers.find((p) => p.id === d.id)!;
+              const copy = t.demo.doctors[d.id];
+              const row = slots[d.id];
+              const open = selected?.doctorId === d.id;
+              const isBooked = booked?.doctorId === d.id;
+              return (
+                <li key={d.id} className="py-3.5">
+                  <div className="grid gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Avatar name={provider.name} size="lg" />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{copy.name}</p>
+                        <p className="truncate text-xs text-muted-foreground">{copy.credentials}</p>
+                      </div>
+                    </div>
+                    {isBooked ? (
+                      <p
+                        className="animate-stamp ml-[3.25rem] inline-flex w-fit items-center gap-1.5 rounded-full bg-tone-green-soft px-3 py-1.5 text-xs font-medium text-tone-green"
+                        role="status"
+                      >
+                        <Check className="size-3.5" />
+                        {t.demo.booked} · {dayLabel(row?.date ?? today, today)} {fmtTime.format(new Date(booked.start))}
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-[minmax(2.5rem,auto)_repeat(3,minmax(0,1fr))] items-center gap-3" aria-label={t.demo.openTimes(copy.name)}>
+                        <span className="text-[11px] text-muted-foreground">{row ? dayLabel(row.date, today) : " "}</span>
+                        {row
+                          ? row.times.map((t) => {
+                              const active = open && selected?.start === t;
+                              return (
+                                <button
+                                  key={t}
+                                  type="button"
+                                  aria-pressed={active}
+                                  onClick={() => {
+                                    setSelected(active ? null : { doctorId: d.id, start: t });
+                                    setError(null);
+                                  }}
+                                  className={cn(
+                                    "h-9 cursor-pointer rounded-full bg-muted px-2 text-xs font-medium tabular-nums transition-colors duration-150 outline-none hover:bg-border focus-visible:ring-2 focus-visible:ring-primary/40",
+                                    active && "bg-primary text-primary-foreground hover:bg-primary",
+                                  )}
+                                >
+                                  {fmtTime.format(new Date(t))}
+                                </button>
+                              );
+                            })
+                          : Array.from({ length: 3 }, (_, i) => <span key={i} className="h-9 rounded-full bg-muted" />)}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Inline booking form, revealed by animating grid rows. */}
+                  <div
+                    className={cn(
+                      "grid transition-[grid-template-rows,opacity] duration-300 ease-out-expo",
+                      open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+                    )}
+                    aria-hidden={!open}
+                  >
+                    <div className="overflow-hidden">
+                      {open && selected ? (
+                        <form onSubmit={submit} className="grid items-end gap-2 pt-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]" noValidate>
+                          <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">
+                            {t.demo.yourName}
+                            <Input name="name" autoComplete="off" className="rounded-full" />
+                          </label>
+                          <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">
+                            {t.demo.phone}
+                            <Input name="phone" type="tel" placeholder="09 123 456 789" autoComplete="off" className="rounded-full" />
+                          </label>
+                          <button type="submit" disabled={submitting} className={cn(buttonVariants(), "rounded-full")}>
+                            {submitting ? <Spinner /> : <Check />}
+                            {t.demo.book(fmtTime.format(new Date(selected.start)))}
+                          </button>
+                          {error ? <p className="text-xs text-tone-red sm:col-span-3">{error}</p> : null}
+                        </form>
+                      ) : null}
                     </div>
                   </div>
-                  {isBooked ? (
-                    <p
-                      className="animate-stamp inline-flex items-center gap-1.5 rounded-full bg-tone-green-soft px-3 py-1.5 text-xs font-medium text-tone-green"
-                      role="status"
-                    >
-                      <Check className="size-3.5" />
-                      {t.demo.booked} · {dayLabel(row?.date ?? today, today)} {fmtTime.format(new Date(booked.start))}
-                    </p>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-1.5" aria-label={t.demo.openTimes(copy.name)}>
-                      <span className="mr-1 text-[11px] text-muted-foreground">{row ? dayLabel(row.date, today) : " "}</span>
-                      {row
-                        ? row.times.map((t) => {
-                            const active = open && selected?.start === t;
-                            return (
-                              <button
-                                key={t}
-                                type="button"
-                                aria-pressed={active}
-                                onClick={() => {
-                                  setSelected(active ? null : { doctorId: d.id, start: t });
-                                  setError(null);
-                                }}
-                                className={cn(
-                                  "h-8 cursor-pointer rounded-full bg-muted px-3 text-xs font-medium tabular-nums transition-colors duration-150 outline-none hover:bg-border focus-visible:ring-2 focus-visible:ring-primary/40",
-                                  active && "bg-primary text-primary-foreground hover:bg-primary",
-                                )}
-                              >
-                                {fmtTime.format(new Date(t))}
-                              </button>
-                            );
-                          })
-                        : Array.from({ length: 3 }, (_, i) => <span key={i} className="h-8 w-[4.5rem] rounded-full bg-muted" />)}
-                    </div>
-                  )}
-                </div>
+                </li>
+              );
+            })}
+          </ul>
 
-                {/* Inline booking form, revealed by animating grid rows. */}
-                <div
-                  className={cn(
-                    "grid transition-[grid-template-rows,opacity] duration-300 ease-out-expo",
-                    open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
-                  )}
-                  aria-hidden={!open}
-                >
-                  <div className="overflow-hidden">
-                    {open && selected ? (
-                      <form onSubmit={submit} className="grid items-end gap-2 pt-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]" noValidate>
-                        <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">
-                          {t.demo.yourName}
-                          <Input name="name" autoComplete="off" className="rounded-full" />
-                        </label>
-                        <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">
-                          {t.demo.phone}
-                          <Input name="phone" type="tel" placeholder="09 123 456 789" autoComplete="off" className="rounded-full" />
-                        </label>
-                        <button type="submit" disabled={submitting} className={cn(buttonVariants(), "rounded-full")}>
-                          {submitting ? <Spinner /> : <Check />}
-                          {t.demo.book(fmtTime.format(new Date(selected.start)))}
-                        </button>
-                        {error ? <p className="text-xs text-tone-red sm:col-span-3">{error}</p> : null}
-                      </form>
-                    ) : null}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-
-        <footer className="flex flex-wrap items-center justify-between gap-2 border-t pt-4 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-red-soft px-2.5 py-1 text-tone-red">
-            <span aria-hidden className="size-1.5 rounded-full bg-tone-red" />
-            {t.demo.closed}
-          </span>
-          <span className="tabular-nums">{DEMO_BUSINESS.phone}</span>
-        </footer>
+          <footer className="flex flex-wrap items-center justify-between gap-2 border-t pt-4 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-red-soft px-2.5 py-1 text-tone-red">
+              <span aria-hidden className="size-1.5 rounded-full bg-tone-red" />
+              {t.demo.closed}
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-foreground tabular-nums">
+              <Phone className="size-3.5" />
+              {DEMO_BUSINESS.phone}
+            </span>
+          </footer>
+        </div>
       </div>
-      <figcaption className="px-1 text-xs text-white/85">
+      <figcaption className="px-1 text-xs text-muted-foreground">
         {booked ? t.demo.bookedCaption(booked.name) : t.demo.caption}
       </figcaption>
     </figure>
