@@ -10,7 +10,7 @@ import { Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
 import { List, listRow } from "@/components/ui/list";
 import { Spinner } from "@/components/ui/misc";
-import { EmptyState } from "@/components/ui/page";
+import { EmptyState, PageHeader } from "@/components/ui/page";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { useSiteCopy } from "@/components/i18n/site-locale";
@@ -131,11 +131,16 @@ export function ServicesManager({ slug, services, providers }: { slug: string; s
 
   return (
     <>
-      <div className="flex justify-end">
-        <Button onClick={() => setEditing("new")}>
-          <Plus /> {v.new}
-        </Button>
-      </div>
+      {/* The header lives here so its "New service" action can open the dialog. */}
+      <PageHeader
+        title={v.title}
+        description={v.description}
+        actions={
+          <Button onClick={() => setEditing("new")}>
+            <Plus /> {v.new}
+          </Button>
+        }
+      />
       {services.length ? (
         <List>
           {services.map((s) => {
