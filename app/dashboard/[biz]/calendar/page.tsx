@@ -6,24 +6,14 @@ import { PageHeader } from "@/components/ui/page";
 import { requireBusiness } from "@/lib/business/access";
 import { getBusinessHours, listBookingsBetween, listProviders, listServices, listTimeOff } from "@/lib/dashboard/queries";
 import { fmtLocalDate, formatHours } from "@/lib/format";
-import { addDays, dateInZone, dayRangeUtc, isDateString, minutesInZone, weekday } from "@/lib/scheduling/time";
+import { CALENDAR_VIEWS, calendarRange, monthStart, type CalendarView } from "@/lib/scheduling/calendar";
+import { dateInZone, dayRangeUtc, isDateString, minutesInZone, weekday } from "@/lib/scheduling/time";
 import { getSiteCopy } from "@/lib/site-locale";
-import { CalendarToolbar, type CalendarView } from "./toolbar";
+import { CalendarToolbar } from "./toolbar";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getSiteCopy();
   return { title: t.dash.meta.calendar };
-}
-
-const VIEWS: CalendarView[] = ["day", "week", "month"];
-
-/** Monday on or before `date` (weeks start on Monday, like the hours editor). */
-const mondayOf = (date: string) => addDays(date, -((weekday(date) + 6) % 7));
-
-/** First day of the month `delta` months from `date`'s month. */
-function monthStart(date: string, delta = 0) {
-  const [y, m] = date.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1 + delta, 1)).toISOString().slice(0, 10);
 }
 
 export default async function CalendarPage({ params, searchParams }: PageProps<"/dashboard/[biz]/calendar">) {
@@ -34,17 +24,10 @@ export default async function CalendarPage({ params, searchParams }: PageProps<"
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
   const today = dateInZone(new Date(), tz);
   const date = isDateString(one(query.date)) ? one(query.date)! : today;
-  const view = VIEWS.find((v) => v === one(query.view)) ?? "day";
-
-  // The visible range for this view.
-  const range =
-    view === "day"
-      ? { from: date, days: 1, prev: addDays(date, -1), next: addDays(date, 1) }
-      : view === "week"
-        ? { from: mondayOf(date), days: 7, prev: addDays(date, -7), next: addDays(date, 7) }
-        : { from: mondayOf(monthStart(date)), days: 42, prev: monthStart(date, -1), next: monthStart(date, 1) };
-  const dates = Array.from({ length: range.days }, (_, i) => addDays(range.from, i));
-  const rangeStart = dayRangeUtc(range.from, tz).start;
+  const view = CALENDAR_VIEWS.find((v) => v === one(query.view)) ?? "day";
+  const range = calendarRange(view, date);
+  const { dates } = range;
+  const rangeStart = dayRangeUtc(dates[0], tz).start;
   const rangeEnd = dayRangeUtc(dates[dates.length - 1], tz).end;
 
   const [providers, services, allBookings, hours, absences] = await Promise.all([

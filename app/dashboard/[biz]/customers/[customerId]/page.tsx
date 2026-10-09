@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page";
 import { requireBusiness } from "@/lib/business/access";
 import { getCustomer } from "@/lib/dashboard/queries";
+import { displayPhone } from "@/lib/phone";
 import { getSiteCopy } from "@/lib/site-locale";
 import { CustomerForm } from "./customer-form";
 
@@ -22,7 +23,7 @@ export default async function CustomerPage({ params }: PageProps<"/dashboard/[bi
   const data = await getCustomer(business.id, customerId);
   if (!data) notFound();
   const { customer, bookings } = data;
-  const phone = /^959\d{7,9}$/.test(customer.phone) ? `0${customer.phone.slice(2)}` : `+${customer.phone}`;
+  const phone = displayPhone(customer.phone);
   const stats = {
     total: bookings.filter((b) => b.status !== "cancelled").length,
     noShows: bookings.filter((b) => b.status === "no_show").length,

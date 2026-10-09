@@ -30,7 +30,7 @@ import { LanguageSwitch, useSiteCopy } from "@/components/i18n/site-locale";
 import { signOut } from "@/lib/auth-client";
 import type { MemberRole } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
-import { Avatar } from "./avatar";
+import { Avatar } from "@/components/ui/avatar";
 
 type Biz = { slug: string; name: string };
 

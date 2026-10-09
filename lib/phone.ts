@@ -9,4 +9,9 @@ export function normalizePhone(input: string): string {
   return digits;
 }
 
+/** A stored (normalized) phone shown the way people write it: 959… → 09…, else +…. */
+export function displayPhone(stored: string): string {
+  return /^959\d{7,9}$/.test(stored) ? `0${stored.slice(2)}` : `+${stored}`;
+}
+
 export const PHONE_PATTERN = /^\+?[\d\s()-]{6,20}$/;

@@ -117,11 +117,20 @@ Controls 12px (`--radius`), cards 20px (`rounded-[1.25rem]`), large panels 32px,
 ## Components
 
 - **Header** (site and dashboard): logo mark (round sage, wordmark hidden on phones in the site header), pill tabs on `bg-muted`, round icon buttons. The dashboard's Setup tab is a menu that shows the current setup page when active. Sticky content below it offsets by `top-24`.
-- **Avatar** (`components/dashboard/avatar.tsx`): initials without honorifics, tint chosen by name.
-- **Calendar** (`app/dashboard/[biz]/calendar`): Day (a column per doctor), Week (a column per date) and Month (six-week grid, three appointments per day then "+N more"), with Today / previous / next, a date picker, a doctor filter and the view switch; state lives in the URL (`view`, `date`, `doctor`). Day and Week share `TimeGrid` (working hours white, the rest shaded, closures and time off as grey bands, a now-line, overlapping appointments side by side via `layoutLanes` in `lib/scheduling/lanes.ts`); Month is `MonthGrid`. Weeks start on Monday.
-- **Overview** (`app/dashboard/[biz]/page.tsx`): today's progress (seen / confirmed / pending bar with markers, four ringed stat tiles), doctors on duty, today's appointments (time-led rows, "Add new"), next-7-days load, clinic hours progress, today's flow with a status donut, and the booking-link card.
+- **Lists** (`components/ui/list.tsx`): `List` is a white card with even inner padding and no divider lines; `listRow` rows highlight as a rounded pill inset from the edges. Use it for every clickable list.
+- **Avatar** (`components/ui/avatar.tsx`): initials without honorifics, tint chosen by name.
+- **Calendar** (`app/dashboard/[biz]/calendar`, date ranges in `lib/scheduling/calendar.ts`): Day (a column per doctor), Week (a column per date) and Month (six-week grid, three appointments per day then "+N more"), with Today / previous / next, a date picker, a doctor filter and the view switch; state lives in the URL (`view`, `date`, `doctor`). Day and Week share `TimeGrid` (working hours white, the rest shaded, closures and time off as grey bands, a now-line, overlapping appointments side by side via `layoutLanes` in `lib/scheduling/lanes.ts`); Month is `MonthGrid`. Weeks start on Monday.
+- **Overview** (`app/dashboard/[biz]/page.tsx`, widgets in `components/dashboard/overview/`): today's progress (seen / confirmed / pending bar with markers, four ringed stat tiles), doctors on duty, today's appointments (time-led rows, "Add new"), next-7-days load, clinic hours progress, today's flow with a status donut, and the booking-link card.
 - **Brand studio** (`components/studio`): website detection, fine-tune editor and the widget preview (the booking form alone, at desktop or phone width, no mock website around it). The font field is a searchable `FontPicker` of popular Google Fonts grouped by style, each shown in its own face; any other Google Font name can be typed.
 - **Booking demo** (`components/marketing/booking-demo.tsx`): the landing page's working booking card. Doctor rows show next open times as pill chips; tapping one opens an inline form (grid-rows reveal, 300ms ease-out-expo) that ends in a green "Booked" pill pressed in with `animate-stamp` (420ms). Offline demo API, labeled as a demo.
+
+## Layout stability
+
+Nothing should shift when navigating or opening things:
+- `scrollbar-gutter: stable` on `<html>` reserves the scrollbar's space; canvas pages paint the root grey so the gutter blends in, and the Radix scroll-lock margin is cancelled (`globals.css`).
+- Tabs and segmented controls keep one font weight whether active or not; the Setup tab always reads "Setup".
+- The calendar's time grid fits the remaining viewport (one scrollbar, sticky header).
+- `Field` stacks from the top so side-by-side fields align when only one has a hint.
 
 ## Do's and Don'ts
 

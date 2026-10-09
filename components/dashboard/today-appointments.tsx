@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { BookingRow } from "@/lib/dashboard/queries";
 import { useSiteCopy } from "@/components/i18n/site-locale";
 import { cn } from "@/lib/utils";
-import { Avatar } from "./avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { BookingDialog } from "./booking-dialog";
 import { STATUS_DOT } from "./status-badge";
 

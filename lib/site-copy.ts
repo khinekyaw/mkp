@@ -7,7 +7,6 @@ import type { Locale } from "./i18n";
 // first pass and should be reviewed by a native speaker before launch.
 
 const en = {
-  langName: "English",
   dash: dashEn,
   nav: {
     brandMatching: "Brand matching",
@@ -178,7 +177,6 @@ const en = {
 export type SiteCopy = typeof en;
 
 const my: SiteCopy = {
-  langName: "မြန်မာ",
   dash: dashMy,
   nav: {
     brandMatching: "အမှတ်တံဆိပ်နှင့် ကိုက်ညီမှု",

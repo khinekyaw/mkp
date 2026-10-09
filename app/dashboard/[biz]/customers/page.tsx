@@ -1,23 +1,19 @@
 import { ChevronRight, Search, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Avatar } from "@/components/dashboard/avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { List, listRow } from "@/components/ui/list";
 import { EmptyState, PageHeader } from "@/components/ui/page";
 import { requireBusiness } from "@/lib/business/access";
 import { listCustomers } from "@/lib/dashboard/queries";
 import { fmtDate } from "@/lib/format";
+import { displayPhone } from "@/lib/phone";
 import { getSiteCopy } from "@/lib/site-locale";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getSiteCopy();
   return { title: t.dash.meta.customers };
-}
-
-/** Stored phones are normalized (959…); show them the way Myanmar users write them. */
-function displayPhone(p: string) {
-  return /^959\d{7,9}$/.test(p) ? `0${p.slice(2)}` : `+${p}`;
 }
 
 export default async function CustomersPage({ params, searchParams }: PageProps<"/dashboard/[biz]/customers">) {

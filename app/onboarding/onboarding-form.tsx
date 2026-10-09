@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { SplitLayout } from "@/components/brand/split-layout";
-import { Avatar } from "@/components/dashboard/avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { Phrases } from "@/components/i18n/phrases";
 import { useSiteCopy } from "@/components/i18n/site-locale";
 import { Button } from "@/components/ui/button";

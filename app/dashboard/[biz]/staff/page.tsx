@@ -1,7 +1,7 @@
 import { ChevronRight, UserRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Avatar } from "@/components/dashboard/avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { List, listRow } from "@/components/ui/list";
 import { EmptyState, PageHeader } from "@/components/ui/page";

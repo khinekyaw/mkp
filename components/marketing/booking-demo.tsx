@@ -3,7 +3,7 @@
 import { Check } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { demoApi } from "@/components/booking/api";
-import { Avatar } from "@/components/dashboard/avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { useSiteCopy } from "@/components/i18n/site-locale";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

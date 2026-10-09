@@ -5,10 +5,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSiteCopy } from "@/components/i18n/site-locale";
 import { Select } from "@/components/ui/select";
+import { CALENDAR_VIEWS, type CalendarView } from "@/lib/scheduling/calendar";
 import { cn } from "@/lib/utils";
 
-export type CalendarView = "day" | "week" | "month";
-const VIEWS: CalendarView[] = ["day", "week", "month"];
 
 const roundLink =
   "grid size-9 place-items-center rounded-full bg-background text-foreground transition-colors hover:bg-muted outline-none focus-visible:ring-2 focus-visible:ring-primary/40 [&_svg]:size-4";
@@ -94,7 +93,7 @@ export function CalendarToolbar({
           </Select>
         ) : null}
         <nav aria-label={c.view} className="inline-flex rounded-full bg-background p-1">
-          {VIEWS.map((v) => (
+          {CALENDAR_VIEWS.map((v) => (
             <Link
               key={v}
               href={href({ view: v })}

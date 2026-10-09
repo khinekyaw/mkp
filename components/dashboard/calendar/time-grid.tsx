@@ -8,7 +8,7 @@ import { fmtClock, fmtTime } from "@/lib/format";
 import { layoutLanes } from "@/lib/scheduling/lanes";
 import { minutesInZone } from "@/lib/scheduling/time";
 import { cn } from "@/lib/utils";
-import { Avatar } from "../avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { BookingDialog } from "../booking-dialog";
 import { STATUS_STYLE } from "../status-badge";
 
