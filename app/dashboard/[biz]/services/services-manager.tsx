@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
+import { List, listRow } from "@/components/ui/list";
 import { Spinner } from "@/components/ui/misc";
 import { EmptyState } from "@/components/ui/page";
 import { Switch } from "@/components/ui/switch";
@@ -16,6 +17,7 @@ import { useSiteCopy } from "@/components/i18n/site-locale";
 import { deleteServiceAction, saveServiceAction } from "@/lib/dashboard/actions/catalog";
 import type { Service } from "@/lib/db/schema";
 import { fmtMinutes, fmtMoney } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 type ServiceRow = Service & { providerIds: string[] };
 type ProviderOption = { id: string; name: string };
@@ -135,7 +137,7 @@ export function ServicesManager({ slug, services, providers }: { slug: string; s
         </Button>
       </div>
       {services.length ? (
-        <ul className="divide-y overflow-hidden rounded-lg bg-background px-1.5">
+        <List>
           {services.map((s) => {
             const staff = s.providerIds.map(name).filter(Boolean);
             return (
@@ -143,7 +145,7 @@ export function ServicesManager({ slug, services, providers }: { slug: string; s
                 <button
                   type="button"
                   onClick={() => setEditing(s)}
-                  className="flex w-full cursor-pointer flex-wrap items-center gap-x-4 gap-y-1 rounded-md px-3 py-3 text-left hover:bg-muted/60"
+                  className={cn(listRow, "flex-wrap gap-x-4 gap-y-1")}
                 >
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2">
@@ -165,7 +167,7 @@ export function ServicesManager({ slug, services, providers }: { slug: string; s
               </li>
             );
           })}
-        </ul>
+        </List>
       ) : (
         <EmptyState icon={<Tag />} title={v.emptyTitle} description={v.emptyBody} />
       )}

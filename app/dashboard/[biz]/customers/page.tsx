@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Avatar } from "@/components/dashboard/avatar";
 import { Input } from "@/components/ui/input";
+import { List, listRow } from "@/components/ui/list";
 import { EmptyState, PageHeader } from "@/components/ui/page";
 import { requireBusiness } from "@/lib/business/access";
 import { listCustomers } from "@/lib/dashboard/queries";
@@ -34,10 +35,10 @@ export default async function CustomersPage({ params, searchParams }: PageProps<
         <Input name="q" defaultValue={q} placeholder={c.search} className="rounded-full border-transparent pl-9" />
       </form>
       {customers.length ? (
-        <ul className="divide-y overflow-hidden rounded-lg bg-background px-1.5">
+        <List>
           {customers.map((x) => (
             <li key={x.id}>
-              <Link href={`/dashboard/${business.slug}/customers/${x.id}`} className="flex items-center gap-3 rounded-md px-3 py-3 hover:bg-muted/60">
+              <Link href={`/dashboard/${business.slug}/customers/${x.id}`} className={listRow}>
                 <Avatar name={x.name} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">{x.name}</span>
@@ -54,7 +55,7 @@ export default async function CustomersPage({ params, searchParams }: PageProps<
               </Link>
             </li>
           ))}
-        </ul>
+        </List>
       ) : (
         <EmptyState icon={<Users />} title={q ? c.noMatches : c.noneYet} description={q ? c.tryAnother : c.addedAuto} />
       )}

@@ -59,7 +59,7 @@ export default async function CustomerPage({ params }: PageProps<"/dashboard/[bi
           <CardHeader className="pb-3">
             <CardTitle>{c.appointments}</CardTitle>
           </CardHeader>
-          <BookingList bookings={bookings} slug={business.slug} timezone={business.timezone} className="border-t" />
+          <BookingList bookings={bookings} slug={business.slug} timezone={business.timezone} className="px-2 pb-2" />
         </Card>
         <Card>
           <CardHeader>

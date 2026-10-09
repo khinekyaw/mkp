@@ -77,9 +77,7 @@ export default async function AppointmentsPage({ params, searchParams }: PagePro
         </form>
       </div>
       {rows.length ? (
-        <div className="overflow-hidden rounded-lg bg-background p-1.5">
-          <BookingList bookings={rows.slice(0, limit)} slug={business.slug} timezone={business.timezone} />
-        </div>
+        <BookingList bookings={rows.slice(0, limit)} slug={business.slug} timezone={business.timezone} />
       ) : (
         <EmptyState
           icon={<ListChecks />}

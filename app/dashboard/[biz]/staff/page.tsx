@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Avatar } from "@/components/dashboard/avatar";
 import { Badge } from "@/components/ui/badge";
+import { List, listRow } from "@/components/ui/list";
 import { EmptyState, PageHeader } from "@/components/ui/page";
 import { requireBusiness } from "@/lib/business/access";
 import { listProviders, listServices } from "@/lib/dashboard/queries";
@@ -29,10 +30,10 @@ export default async function StaffPage({ params }: PageProps<"/dashboard/[biz]/
         actions={<AddStaffDialog slug={business.slug} services={services.filter((s) => s.active).map((s) => ({ id: s.id, name: s.name }))} />}
       />
       {providers.length ? (
-        <ul className="divide-y overflow-hidden rounded-lg bg-background px-1.5">
+        <List>
           {providers.map((p) => (
             <li key={p.id}>
-              <Link href={`/dashboard/${business.slug}/staff/${p.id}`} className="flex items-center gap-3 rounded-md px-3 py-3 hover:bg-muted/60">
+              <Link href={`/dashboard/${business.slug}/staff/${p.id}`} className={listRow}>
                 <Avatar name={p.name} size="lg" />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
@@ -48,7 +49,7 @@ export default async function StaffPage({ params }: PageProps<"/dashboard/[biz]/
               </Link>
             </li>
           ))}
-        </ul>
+        </List>
       ) : (
         <EmptyState icon={<UserRound />} title={st.emptyTitle} description={st.emptyBody} />
       )}

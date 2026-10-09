@@ -5,6 +5,7 @@ import type { BookingRow } from "@/lib/dashboard/queries";
 import { fmtDate, fmtTime } from "@/lib/format";
 import { useSiteCopy } from "@/components/i18n/site-locale";
 import { cn } from "@/lib/utils";
+import { List, listRow } from "@/components/ui/list";
 import { BookingDialog } from "./booking-dialog";
 import { StatusBadge } from "./status-badge";
 
@@ -26,13 +27,13 @@ export function BookingList({
   const { locale } = useSiteCopy();
   return (
     <>
-      <ul className={cn("divide-y", className)}>
+      <List className={className}>
         {bookings.map((b) => (
           <li key={b.id}>
             <button
               type="button"
               onClick={() => setSelected(b)}
-              className="grid w-full cursor-pointer grid-cols-[4.5rem_1fr_auto] items-center gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-muted/60 sm:grid-cols-[7rem_1fr_auto]"
+              className={cn(listRow, "grid grid-cols-[4.5rem_1fr_auto] text-sm sm:grid-cols-[7rem_1fr_auto]")}
             >
               <span className="grid">
                 <span className="font-medium tabular-nums">{fmtTime(b.startsAt, timezone, locale)}</span>
@@ -50,7 +51,7 @@ export function BookingList({
             </button>
           </li>
         ))}
-      </ul>
+      </List>
       <BookingDialog booking={selected} slug={slug} timezone={timezone} onOpenChange={(o) => !o && setSelected(null)} />
     </>
   );
