@@ -85,6 +85,9 @@
     accent-color: var(--primary);
     caret-color: var(--primary);
     scrollbar-color: oklch(0.82 0.008 120) transparent;
+    /* Always reserve the scrollbar's space so pages that do and don't scroll
+       (e.g. calendar month vs day/week) keep the same width and don't jump. */
+    scrollbar-gutter: stable;
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
