@@ -2,6 +2,7 @@
 
 import { Check, Copy, Loader2 } from "lucide-react";
 import { useState, type ComponentProps } from "react";
+import { useSiteCopy } from "@/components/i18n/site-locale";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 
@@ -15,6 +16,7 @@ export function Skeleton({ className, ...props }: ComponentProps<"div">) {
 
 export function CopyButton({ value, className }: { value: string; className?: string }) {
   const [copied, setCopied] = useState(false);
+  const { t } = useSiteCopy();
   return (
     <Button
       variant="outline"
@@ -27,7 +29,7 @@ export function CopyButton({ value, className }: { value: string; className?: st
       }}
     >
       {copied ? <Check /> : <Copy />}
-      {copied ? "Copied" : "Copy"}
+      {copied ? t.dash.common.copied : t.dash.common.copy}
     </Button>
   );
 }

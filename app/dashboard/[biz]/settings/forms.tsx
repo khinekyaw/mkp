@@ -9,6 +9,7 @@ import { Spinner } from "@/components/ui/misc";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { TimezoneSelect } from "@/components/ui/timezone-select";
+import { useSiteCopy } from "@/components/i18n/site-locale";
 import type { BusinessSettings } from "@/lib/business/settings";
 import { saveBookingRulesAction, saveProfileAction } from "@/lib/dashboard/actions/business";
 
@@ -27,46 +28,49 @@ export function ProfileSettings({ slug, values, bookingBase }: { slug: string; v
   const [state, action, pending] = useActionState(saveProfileAction.bind(null, slug), null);
   useActionFeedback(state);
   const err = (k: string) => state?.fields?.[k]?.[0];
+  const { t } = useSiteCopy();
+  const se = t.dash.settings;
+  const verticals = t.onboarding.verticals;
   return (
     <form action={action} className="grid gap-4">
-      <Field label="Business name" htmlFor="b-name" error={err("name")}>
+      <Field label={se.businessName} htmlFor="b-name" error={err("name")}>
         <Input id="b-name" name="name" defaultValue={values.name} required />
       </Field>
-      <Field label="Booking link" htmlFor="b-slug" error={err("slug")} hint="Changing it breaks links you've already shared.">
+      <Field label={se.bookingLink} htmlFor="b-slug" error={err("slug")} hint={se.bookingLinkHint}>
         <div className="flex items-center rounded-md border focus-within:ring-2 focus-within:ring-ring/15">
           <span className="truncate pl-3 text-sm text-muted-foreground">{bookingBase.replace(/^https?:\/\//, "")}</span>
           <input id="b-slug" name="slug" defaultValue={values.slug} required className="h-10 min-w-0 flex-1 bg-transparent pr-3 text-sm outline-none" />
         </div>
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Type" htmlFor="b-vertical">
+        <Field label={se.type} htmlFor="b-vertical">
           <Select id="b-vertical" name="vertical" defaultValue={values.vertical}>
-            <option value="clinic">Medical clinic</option>
-            <option value="dental">Dental clinic</option>
-            <option value="salon">Hair & beauty salon</option>
-            <option value="spa">Spa & wellness</option>
-            <option value="other">Something else</option>
+            {(Object.keys(verticals) as (keyof typeof verticals)[]).map((v) => (
+              <option key={v} value={v}>
+                {verticals[v]}
+              </option>
+            ))}
           </Select>
         </Field>
-        <Field label="Timezone" htmlFor="b-tz" error={err("timezone")}>
+        <Field label={se.timezone} htmlFor="b-tz" error={err("timezone")}>
           <TimezoneSelect id="b-tz" name="timezone" defaultValue={values.timezone} />
         </Field>
-        <Field label="Phone" htmlFor="b-phone">
+        <Field label={t.dash.common.phone} htmlFor="b-phone">
           <Input id="b-phone" name="phone" type="tel" defaultValue={values.phone} />
         </Field>
-        <Field label="Notification email" htmlFor="b-email" error={err("email")} hint="New bookings are sent here and to admins.">
+        <Field label={se.notificationEmail} htmlFor="b-email" error={err("email")} hint={se.notificationEmailHint}>
           <Input id="b-email" name="email" type="email" defaultValue={values.email} />
         </Field>
       </div>
-      <Field label="Address" htmlFor="b-address">
+      <Field label={se.address} htmlFor="b-address">
         <Input id="b-address" name="address" defaultValue={values.address} />
       </Field>
-      <Field label="Website" htmlFor="b-website" error={err("website")}>
+      <Field label={se.website} htmlFor="b-website" error={err("website")}>
         <Input id="b-website" name="website" defaultValue={values.website} placeholder="yourclinic.com" />
       </Field>
       {state?.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
       <Button type="submit" disabled={pending} className="w-fit">
-        {pending ? <Spinner /> : null} Save details
+        {pending ? <Spinner /> : null} {se.saveDetails}
       </Button>
     </form>
   );
@@ -87,41 +91,43 @@ function ToggleRow({ name, label, description, defaultChecked }: { name: string;
 export function RulesSettings({ slug, settings }: { slug: string; settings: BusinessSettings }) {
   const [state, action, pending] = useActionState(saveBookingRulesAction.bind(null, slug), null);
   useActionFeedback(state);
+  const { t } = useSiteCopy();
+  const se = t.dash.settings;
   return (
     <form action={action} className="grid gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Minimum notice" htmlFor="r-lead">
+        <Field label={se.minNotice} htmlFor="r-lead">
           <Select id="r-lead" name="leadMinutes" defaultValue={String(settings.leadMinutes)}>
             {[0, 30, 60, 120, 240, 720, 1440, 2880].map((m) => (
               <option key={m} value={m}>
-                {m === 0 ? "None" : m < 60 ? `${m} minutes` : m < 1440 ? `${m / 60} hour${m === 60 ? "" : "s"}` : `${m / 1440} day${m === 1440 ? "" : "s"}`}
+                {m === 0 ? se.none : m < 60 ? se.minutes(m) : m < 1440 ? se.hoursN(m / 60) : se.days(m / 1440)}
               </option>
             ))}
           </Select>
         </Field>
-        <Field label="Book up to" htmlFor="r-horizon">
+        <Field label={se.bookUpTo} htmlFor="r-horizon">
           <Select id="r-horizon" name="horizonDays" defaultValue={String(settings.horizonDays)}>
             {[7, 14, 30, 60, 90, 180].map((d) => (
               <option key={d} value={d}>
-                {d} days ahead
+                {se.daysAhead(d)}
               </option>
             ))}
           </Select>
         </Field>
-        <Field label="Start times every" htmlFor="r-interval">
+        <Field label={se.startEvery} htmlFor="r-interval">
           <Select id="r-interval" name="slotIntervalMin" defaultValue={String(settings.slotIntervalMin)}>
             {[10, 15, 20, 30, 45, 60].map((m) => (
               <option key={m} value={m}>
-                {m} minutes
+                {se.minutes(m)}
               </option>
             ))}
           </Select>
         </Field>
-        <Field label="Online cancellation until" htmlFor="r-cancel">
+        <Field label={se.cancelUntil} htmlFor="r-cancel">
           <Select id="r-cancel" name="cancelNoticeHours" defaultValue={String(settings.cancelNoticeHours)}>
             {[0, 2, 6, 12, 24, 48].map((h) => (
               <option key={h} value={h}>
-                {h === 0 ? "Start time" : `${h} hours before`}
+                {h === 0 ? se.startTime : se.hoursBefore(h)}
               </option>
             ))}
           </Select>
@@ -129,22 +135,22 @@ export function RulesSettings({ slug, settings }: { slug: string; settings: Busi
       </div>
       <ToggleRow
         name="requireConfirmation"
-        label="Confirm bookings manually"
-        description="New online bookings wait for your approval."
+        label={se.confirmManually}
+        description={se.confirmManuallyHint}
         defaultChecked={settings.requireConfirmation}
       />
       <ToggleRow
         name="allowProviderChoice"
-        label="Let patients choose a doctor"
-        description="Otherwise anyone available is assigned."
+        label={se.chooseDoctor}
+        description={se.chooseDoctorHint}
         defaultChecked={settings.allowProviderChoice}
       />
       <fieldset className="grid gap-2">
-        <legend className="mb-1.5 text-xs font-medium text-muted-foreground">Widget languages</legend>
+        <legend className="mb-1.5 text-xs font-medium text-muted-foreground">{se.widgetLanguages}</legend>
         <div className="flex flex-wrap gap-4">
           {[
-            ["en", "English"],
-            ["my", "Burmese"],
+            ["en", t.dash.common.english],
+            ["my", t.dash.common.burmese],
           ].map(([v, label]) => (
             <label key={v} className="flex cursor-pointer items-center gap-2 text-sm">
               <input type="checkbox" name="locales" value={v} defaultChecked={settings.locales.includes(v as "en" | "my")} className="accent-foreground" />
@@ -152,16 +158,16 @@ export function RulesSettings({ slug, settings }: { slug: string; settings: Busi
             </label>
           ))}
         </div>
-        <Field label="Default language" htmlFor="r-default-locale">
+        <Field label={se.defaultLanguage} htmlFor="r-default-locale">
           <Select id="r-default-locale" name="defaultLocale" defaultValue={settings.locales[0]} className="sm:w-48">
-            <option value="en">English</option>
-            <option value="my">Burmese</option>
+            <option value="en">{t.dash.common.english}</option>
+            <option value="my">{t.dash.common.burmese}</option>
           </Select>
         </Field>
       </fieldset>
       {state?.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
       <Button type="submit" disabled={pending} className="w-fit">
-        {pending ? <Spinner /> : null} Save rules
+        {pending ? <Spinner /> : null} {se.saveRules}
       </Button>
     </form>
   );

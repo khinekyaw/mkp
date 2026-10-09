@@ -113,7 +113,7 @@ Copy `.env.example` to `.env.local`. Everything is optional locally.
 | `/` | Prospects | Landing page with the live, offline theming demo |
 | `/sign-up`, `/sign-in`, `/forgot-password` | Owners | Better Auth email + password |
 | `/onboarding` | Owners | Create a business (starter services, hours, a provider), then auto-theme from the website |
-| `/dashboard/[biz]` | Team | Overview, calendar (day view by doctor), appointments, customers, services, staff, hours & closures, appearance, share & embed, settings |
+| `/dashboard/[biz]` | Team | Overview, calendar (day by doctor, week, month), appointments, customers, services, staff, hours & closures, appearance, share & embed, settings |
 | `/b/[slug]` | Patients | Hosted booking page, a shareable link for Facebook/Viber |
 | `/embed/[businessId]` + `public/embed.js` | Patients | Embeddable widget (`<script src="…/embed.js" data-business="…">`) |
 | `/manage/[bookingId]?t=…` | Patients | View or cancel (within the business's notice period) |
@@ -139,7 +139,7 @@ scripts/db.ts            migrate / seed / reset
 
 ### Design system
 
-Every surface of our own uses one look: a soft grey canvas, white rounded cards, sage-green accents, pill navigation in a floating header. The landing page, sign-in/up and onboarding are localized in English and Myanmar (`lib/site-copy.ts`, switch stored in the `site_locale` cookie). Product truth lives in [PRODUCT.md](PRODUCT.md) and the visual system with tokens in [DESIGN.md](DESIGN.md). Clinic-branded pages (widget, `/b/[slug]`, `/manage`) never use these tokens; they wear each clinic's theme.
+Every surface of our own uses one look: a soft grey canvas, white rounded cards, sage-green accents, pill navigation in a floating header. The whole product (site and dashboard) is localized in English and Myanmar (`lib/site-copy.ts`, switch stored in the `site_locale` cookie). Product truth lives in [PRODUCT.md](PRODUCT.md) and the visual system with tokens in [DESIGN.md](DESIGN.md). Clinic-branded pages (widget, `/b/[slug]`, `/manage`) never use these tokens; they wear each clinic's theme.
 
 ### Key decisions
 

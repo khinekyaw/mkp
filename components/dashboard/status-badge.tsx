@@ -1,5 +1,7 @@
+"use client";
+
+import { useSiteCopy } from "@/components/i18n/site-locale";
 import type { BookingStatus } from "@/lib/db/schema";
-import { STATUS_LABEL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 // One status vocabulary across badges and calendar blocks (soft fill + ink):
@@ -23,6 +25,7 @@ export const STATUS_DOT: Record<BookingStatus, string> = {
 };
 
 export function StatusBadge({ status, className }: { status: BookingStatus; className?: string }) {
+  const { t } = useSiteCopy();
   return (
     <span
       className={cn(
@@ -32,7 +35,7 @@ export function StatusBadge({ status, className }: { status: BookingStatus; clas
       )}
     >
       <span aria-hidden className={cn("size-1.5 rounded-full", STATUS_DOT[status])} />
-      {STATUS_LABEL[status]}
+      {t.dash.status[status]}
     </span>
   );
 }

@@ -3,15 +3,16 @@
 import { ChevronRight } from "lucide-react";
 import { useState } from "react";
 import type { BookingRow } from "@/lib/dashboard/queries";
+import { useSiteCopy } from "@/components/i18n/site-locale";
 import { cn } from "@/lib/utils";
 import { Avatar } from "./avatar";
 import { BookingDialog } from "./booking-dialog";
 import { STATUS_DOT } from "./status-badge";
-import { STATUS_LABEL } from "@/lib/format";
 
 /** Today's appointments as time-led rows; each opens the detail dialog. */
 export function TodayAppointments({ bookings, slug, timezone }: { bookings: BookingRow[]; slug: string; timezone: string }) {
   const [selected, setSelected] = useState<BookingRow | null>(null);
+  const { t } = useSiteCopy();
   const time = (d: Date) => new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: timezone }).format(new Date(d));
 
   return (
@@ -32,7 +33,7 @@ export function TodayAppointments({ bookings, slug, timezone }: { bookings: Book
                 </span>
                 <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                   <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", STATUS_DOT[b.status])} />
-                  <span className="sr-only">{STATUS_LABEL[b.status]}, </span>
+                  <span className="sr-only">{t.dash.status[b.status]}, </span>
                   <span className="truncate">{b.serviceName}</span>
                 </span>
               </span>

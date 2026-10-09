@@ -26,6 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { LanguageSwitch, useSiteCopy } from "@/components/i18n/site-locale";
 import { signOut } from "@/lib/auth-client";
 import type { MemberRole } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
@@ -34,19 +35,19 @@ import { Avatar } from "./avatar";
 type Biz = { slug: string; name: string };
 
 const NAV = [
-  { href: "", label: "Overview" },
-  { href: "/calendar", label: "Calendar" },
-  { href: "/appointments", label: "Appointments" },
-  { href: "/customers", label: "Customers" },
-];
+  { href: "", key: "overview" },
+  { href: "/calendar", key: "calendar" },
+  { href: "/appointments", key: "appointments" },
+  { href: "/customers", key: "customers" },
+] as const;
 const SETUP = [
-  { href: "/services", label: "Services", icon: Tag },
-  { href: "/staff", label: "Staff", icon: UserRound },
-  { href: "/hours", label: "Hours & closures", icon: Clock },
-  { href: "/appearance", label: "Appearance", icon: Palette },
-  { href: "/share", label: "Share & embed", icon: Share2 },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
+  { href: "/services", key: "services", icon: Tag },
+  { href: "/staff", key: "staff", icon: UserRound },
+  { href: "/hours", key: "hours", icon: Clock },
+  { href: "/appearance", key: "appearance", icon: Palette },
+  { href: "/share", key: "share", icon: Share2 },
+  { href: "/settings", key: "settings", icon: Settings },
+] as const;
 
 const tab = "inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-4 text-sm whitespace-nowrap transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
 const roundButton =
@@ -66,12 +67,14 @@ export function TopNav({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useSiteCopy();
+  const nav = t.dash.nav;
   const base = `/dashboard/${business.slug}`;
   const isActive = (href: string) => (href === "" ? pathname === base : pathname.startsWith(base + href));
   const setupActive = SETUP.find((s) => isActive(s.href));
 
   const tabs = (
-    <nav aria-label="Dashboard" className="flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-full bg-muted p-1 scrollbar-none">
+    <nav aria-label={nav.dashboard} className="flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-full bg-muted p-1 scrollbar-none">
       {NAV.map((item) => {
         const active = isActive(item.href);
         return (
@@ -81,7 +84,7 @@ export function TopNav({
             aria-current={active ? "page" : undefined}
             className={cn(tab, active ? "bg-primary font-medium text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
           >
-            {item.label}
+            {nav[item.key]}
           </Link>
         );
       })}
@@ -90,13 +93,13 @@ export function TopNav({
           <DropdownMenuTrigger
             className={cn(tab, setupActive ? "bg-primary font-medium text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
           >
-            {setupActive?.label ?? "Setup"}
+            {setupActive ? nav[setupActive.key] : nav.setup}
             <ChevronDown className="size-3.5 opacity-70" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             {SETUP.map((s) => (
               <DropdownMenuItem key={s.href} onSelect={() => router.push(base + s.href)}>
-                <s.icon /> <span className="flex-1">{s.label}</span>
+                <s.icon /> <span className="flex-1">{nav[s.key]}</span>
                 {setupActive?.href === s.href ? <Check /> : null}
               </DropdownMenuItem>
             ))}
@@ -113,7 +116,7 @@ export function TopNav({
         <div className="flex min-w-0 items-center gap-2">
           <Link
             href={base}
-            aria-label="Overview"
+            aria-label={nav.overview}
             className="grid size-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             <Cross className="size-5 fill-current" strokeWidth={1.5} />
@@ -125,7 +128,7 @@ export function TopNav({
               <ChevronDown className="size-3.5 shrink-0 opacity-60" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-64">
-              <DropdownMenuLabel>Businesses</DropdownMenuLabel>
+              <DropdownMenuLabel>{nav.businesses}</DropdownMenuLabel>
               {businesses.map((b) => (
                 <DropdownMenuItem key={b.slug} onSelect={() => router.push(`/dashboard/${b.slug}`)}>
                   <span className="flex-1 truncate">{b.name}</span>
@@ -134,13 +137,14 @@ export function TopNav({
               ))}
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => router.push("/onboarding")}>
-                <Plus /> New business
+                <Plus /> {nav.newBusiness}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
   
           {/* Account sits beside the switcher on phones; on desktop it's on the right. */}
           <div className="ml-auto flex items-center gap-2 lg:hidden">
+            <LanguageSwitch />
             <AccountMenu user={user} role={role} slug={business.slug} />
           </div>
         </div>
@@ -148,7 +152,8 @@ export function TopNav({
         {tabs}
   
         <div className="hidden items-center justify-end gap-2 lg:flex">
-          <a href={`/b/${business.slug}`} target="_blank" rel="noreferrer" aria-label="View booking page" title="View booking page" className={roundButton}>
+          <LanguageSwitch />
+          <a href={`/b/${business.slug}`} target="_blank" rel="noreferrer" aria-label={nav.viewBookingPage} title={nav.viewBookingPage} className={roundButton}>
             <ExternalLink />
           </a>
           <AccountMenu user={user} role={role} slug={business.slug} />
@@ -160,10 +165,11 @@ export function TopNav({
 
 function AccountMenu({ user, role, slug }: { user: { name: string; email: string }; role: MemberRole; slug: string }) {
   const router = useRouter();
+  const { t } = useSiteCopy();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label="Account"
+        aria-label={t.dash.nav.account}
         className="flex h-10 cursor-pointer items-center rounded-full bg-muted p-1 outline-none hover:bg-border focus-visible:ring-2 focus-visible:ring-primary/40"
       >
         <Avatar name={user.name} />
@@ -172,11 +178,11 @@ function AccountMenu({ user, role, slug }: { user: { name: string; email: string
         <DropdownMenuLabel className="grid">
           <span className="truncate text-sm font-medium text-foreground">{user.name}</span>
           <span className="truncate">{user.email}</span>
-          <span className="capitalize">{role}</span>
+          <span>{t.dash.roles[role]}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => window.open(`/b/${slug}`, "_blank", "noreferrer")} className="lg:hidden">
-          <ExternalLink /> View booking page
+          <ExternalLink /> {t.dash.nav.viewBookingPage}
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={async () => {
@@ -185,7 +191,7 @@ function AccountMenu({ user, role, slug }: { user: { name: string; email: string
             router.refresh();
           }}
         >
-          <LogOut /> Sign out
+          <LogOut /> {t.dash.nav.signOut}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

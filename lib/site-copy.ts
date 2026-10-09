@@ -1,12 +1,14 @@
+import { dashEn, dashMy } from "./copy/dashboard";
 import type { Locale } from "./i18n";
 
-// Copy for our own site (landing, sign-in/up, onboarding, the brand studio).
-// The dashboard is English for now. Each page shows one language at a time;
+// Copy for our own site (landing, sign-in/up, onboarding, the brand studio, and
+// the dashboard under `dash`). Each page shows one language at a time;
 // never print the same line twice in two languages. Burmese strings are a
 // first pass and should be reviewed by a native speaker before launch.
 
 const en = {
   langName: "English",
+  dash: dashEn,
   nav: {
     brandMatching: "Brand matching",
     features: "Features",
@@ -177,6 +179,7 @@ export type SiteCopy = typeof en;
 
 const my: SiteCopy = {
   langName: "မြန်မာ",
+  dash: dashMy,
   nav: {
     brandMatching: "အမှတ်တံဆိပ်နှင့် ကိုက်ညီမှု",
     features: "လုပ်ဆောင်ချက်များ",

@@ -21,16 +21,24 @@ import { TodayAppointments } from "@/components/dashboard/today-appointments";
 import { canManage, requireBusiness } from "@/lib/business/access";
 import { getBusinessHours, getOverview, listProviders, listServices } from "@/lib/dashboard/queries";
 import type { BookingStatus } from "@/lib/db/schema";
-import { fmtClock, fmtLocalDate, formatHours, STATUS_LABEL } from "@/lib/format";
+import type { DashCopy } from "@/lib/copy/dashboard";
+import { fmtClock, fmtLocalDate, formatHours } from "@/lib/format";
+import type { Locale } from "@/lib/i18n";
+import { getSiteCopy } from "@/lib/site-locale";
 import { minutesInZone, weekday } from "@/lib/scheduling/time";
 import { appUrl } from "@/lib/url";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Today" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getSiteCopy();
+  return { title: t.dash.meta.today };
+}
 
 export default async function OverviewPage({ params, searchParams }: PageProps<"/dashboard/[biz]">) {
   const [{ biz }, query] = await Promise.all([params, searchParams]);
-  const { business, role, user } = await requireBusiness(biz);
+  const [{ business, role, user }, { locale, t }] = await Promise.all([requireBusiness(biz), getSiteCopy()]);
+  const d = t.dash;
+  const o = d.overview;
   const [overview, services, providers, hours] = await Promise.all([
     getOverview(business),
     listServices(business.id),
@@ -67,21 +75,21 @@ export default async function OverviewPage({ params, searchParams }: PageProps<"
   const now = minutesInZone(new Date(), business.timezone);
 
   const checklist = [
-    { done: overview.totals.services > 0, label: "Add your services", href: `${base}/services` },
-    { done: overview.totals.providers > 1 || providers.some((p) => p.title), label: "Add your doctors & staff", href: `${base}/staff` },
-    { done: !!business.theme, label: "Match the booking form to your brand", href: `${base}/appearance` },
-    { done: overview.totals.bookings > 0, label: "Share your booking link", href: `${base}/share` },
+    { done: overview.totals.services > 0, label: o.checklist.services, href: `${base}/services` },
+    { done: overview.totals.providers > 1 || providers.some((p) => p.title), label: o.checklist.staff, href: `${base}/staff` },
+    { done: !!business.theme, label: o.checklist.brand, href: `${base}/appearance` },
+    { done: overview.totals.bookings > 0, label: o.checklist.share, href: `${base}/share` },
   ];
 
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="grid gap-1.5">
-          <h1 className="text-[2.5rem] leading-tight font-medium tracking-[-0.03em] sm:text-5xl">Today&apos;s front desk</h1>
+          <h1 className="text-[2.5rem] leading-tight font-medium tracking-[-0.03em] sm:text-5xl">{o.title}</h1>
           <p className="text-sm text-muted-foreground">
             {query.welcome
-              ? `Welcome, ${user.name.split(" ")[0]}. Your booking page is ready to share.`
-              : "See each doctor's day, confirm requests and book walk-ins from one place."}
+              ? o.welcome(user.name.split(" ")[0])
+              : o.subtitle}
           </p>
         </div>
         <div className="grid gap-0.5 text-sm sm:justify-items-end">
@@ -89,7 +97,7 @@ export default async function OverviewPage({ params, searchParams }: PageProps<"
             <MapPin className="size-4 text-muted-foreground" /> {business.name}
           </p>
           <p className="text-xs text-muted-foreground">
-            {fmtLocalDate(overview.today, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+            {fmtLocalDate(overview.today, { weekday: "long", day: "numeric", month: "long", year: "numeric" }, locale)}
           </p>
         </div>
       </div>
@@ -97,9 +105,9 @@ export default async function OverviewPage({ params, searchParams }: PageProps<"
       {manager && checklist.some((c) => !c.done) ? (
         <Panel className="grid gap-4">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-medium tracking-tight">Getting started</h2>
+            <h2 className="text-lg font-medium tracking-tight">{o.gettingStarted}</h2>
             <span className="text-xs text-muted-foreground tabular-nums">
-              {checklist.filter((c) => c.done).length} of {checklist.length} done
+              {o.doneOf(checklist.filter((c) => c.done).length, checklist.length)}
             </span>
           </div>
           <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -126,44 +134,44 @@ export default async function OverviewPage({ params, searchParams }: PageProps<"
         {/* Today's progress */}
         <Panel className="grid content-start gap-6 md:col-span-2 xl:col-span-6">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-medium tracking-tight">Today&apos;s progress</h2>
+            <h2 className="text-lg font-medium tracking-tight">{o.progress}</h2>
             <Link href={`${base}/calendar`} className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs ring-1 ring-border transition-colors ring-inset hover:bg-muted">
-              Open calendar <ArrowUpRight className="size-3.5" />
+              {o.openCalendar} <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
 
           <div className="grid gap-2">
             <div className="flex items-baseline justify-between gap-3 text-sm">
-              <span className="font-medium">Appointments seen</span>
+              <span className="font-medium">{o.seenTitle}</span>
               <span className="text-xs text-muted-foreground tabular-nums">
-                {today.length ? `${done} of ${today.length}` : "None booked yet"}
+                {today.length ? o.ofTotal(done, today.length) : o.noneYet}
               </span>
             </div>
             <ProgressBar
               segments={[
-                { value: pct(done), className: "bg-sage-deep", icon: <Check />, label: "Seen" },
-                { value: pct(confirmed), className: "bg-primary", icon: <CalendarCheck />, label: "Confirmed" },
+                { value: pct(done), className: "bg-sage-deep", icon: <Check />, label: o.seen },
+                { value: pct(confirmed), className: "bg-primary", icon: <CalendarCheck />, label: o.confirmed },
               ]}
             />
             <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs text-muted-foreground">
-              <Legend swatch="bg-sage-deep" label={`Seen ${done}`} />
-              <Legend swatch="bg-primary" label={`Confirmed ${confirmed}`} />
-              <Legend swatch="hatch bg-background ring-1 ring-border ring-inset" label={`Pending ${pendingToday}`} />
+              <Legend swatch="bg-sage-deep" label={`${o.seen} ${done}`} />
+              <Legend swatch="bg-primary" label={`${o.confirmed} ${confirmed}`} />
+              <Legend swatch="hatch bg-background ring-1 ring-border ring-inset" label={`${o.pending} ${pendingToday}`} />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Tile icon={<CalendarDays />} label="Appointments today" value={today.length} ratio={today.length ? done / today.length : undefined} href={`${base}/calendar`} />
+            <Tile icon={<CalendarDays />} label={o.tiles.today} value={today.length} ratio={today.length ? done / today.length : undefined} href={`${base}/calendar`} />
             <Tile
               icon={<Hourglass />}
-              label="Awaiting confirmation"
+              label={o.tiles.awaiting}
               value={overview.pendingCount}
               tone={overview.pendingCount ? "amber" : undefined}
               href={`${base}/appointments?filter=pending`}
             />
             <Tile
               icon={<Stethoscope />}
-              label="Doctors on duty"
+              label={o.tiles.onDuty}
               value={
                 <>
                   {onDuty} <span className="text-muted-foreground">/ {doctors.length}</span>
@@ -172,26 +180,26 @@ export default async function OverviewPage({ params, searchParams }: PageProps<"
               ratio={doctors.length ? onDuty / doctors.length : undefined}
               href={manager ? `${base}/staff` : `${base}/calendar`}
             />
-            <Tile icon={<UserPlus />} label="New patients this month" value={overview.newCustomers} href={`${base}/customers`} />
+            <Tile icon={<UserPlus />} label={o.tiles.newPatients} value={overview.newCustomers} href={`${base}/customers`} />
           </div>
         </Panel>
 
         {/* Doctors */}
         <Panel className="flex flex-col gap-2 xl:col-span-3">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-medium">Doctors</h2>
-            <RoundLink href={manager ? `${base}/staff` : `${base}/calendar`} label={manager ? "Manage staff" : "Open calendar"} />
+            <h2 className="text-base font-medium">{o.doctors}</h2>
+            <RoundLink href={manager ? `${base}/staff` : `${base}/calendar`} label={manager ? o.manageStaff : o.openCalendar} />
           </div>
           {doctors.length ? (
             <ul className="-mb-2 max-h-80 divide-y overflow-y-auto [scrollbar-width:thin]">
-              {doctors.map((d) => {
-                const working = !!(d.hoursToday || d.count);
+              {doctors.map((doc) => {
+                const working = !!(doc.hoursToday || doc.count);
                 return (
-                  <li key={d.id} className="flex items-center gap-2.5 py-2.5">
-                    <Avatar name={d.name} />
+                  <li key={doc.id} className="flex items-center gap-2.5 py-2.5">
+                    <Avatar name={doc.name} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] font-medium">{d.name}</p>
-                      <p className="truncate text-[11px] text-muted-foreground tabular-nums">{d.hoursToday ?? d.title ?? "No hours today"}</p>
+                      <p className="truncate text-[13px] font-medium">{doc.name}</p>
+                      <p className="truncate text-[11px] text-muted-foreground tabular-nums">{doc.hoursToday ?? doc.title ?? o.noHours}</p>
                     </div>
                     <span
                       className={cn(
@@ -200,14 +208,14 @@ export default async function OverviewPage({ params, searchParams }: PageProps<"
                       )}
                     >
                       <span aria-hidden className={cn("size-1.5 rounded-full", working ? "bg-tone-blue" : "bg-tone-red")} />
-                      {working ? "On duty" : "Off today"}
+                      {working ? o.onDuty : o.offToday}
                     </span>
                   </li>
                 );
               })}
             </ul>
           ) : (
-            <p className="py-6 text-sm text-muted-foreground">No doctors yet.</p>
+            <p className="py-6 text-sm text-muted-foreground">{o.noDoctors}</p>
           )}
         </Panel>
 
@@ -215,7 +223,7 @@ export default async function OverviewPage({ params, searchParams }: PageProps<"
         <Panel className="flex flex-col gap-2 xl:col-span-3">
           <div className="flex items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-base font-medium">
-              Appointments
+              {o.appointments}
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground tabular-nums">{today.length}</span>
             </h2>
             <NewBookingDialog
@@ -226,7 +234,7 @@ export default async function OverviewPage({ params, searchParams }: PageProps<"
               defaultDate={overview.today}
               trigger={
                 <button type="button" className="inline-flex cursor-pointer items-center gap-1 rounded-full px-2 py-1 text-xs font-medium transition-colors hover:bg-muted">
-                  <Plus className="size-3.5" /> Add new
+                  <Plus className="size-3.5" /> {o.addNew}
                 </button>
               }
             />
@@ -236,21 +244,21 @@ export default async function OverviewPage({ params, searchParams }: PageProps<"
               <TodayAppointments bookings={today} slug={business.slug} timezone={business.timezone} />
             </div>
           ) : (
-            <p className="py-6 text-sm text-muted-foreground">No appointments today yet.</p>
+            <p className="py-6 text-sm text-muted-foreground">{o.noAppointments}</p>
           )}
         </Panel>
 
         {/* Week load + clinic hours */}
         <div className="grid content-start gap-4 xl:col-span-3">
-          <WeekLoad days={overview.weekByDay} total={overview.weekCount} href={`${base}/appointments`} />
+          <WeekLoad days={overview.weekByDay} total={overview.weekCount} href={`${base}/appointments`} d={d} locale={locale} />
           <Panel className="grid gap-3">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-base font-medium">Clinic hours</h2>
+              <h2 className="text-base font-medium">{o.clinicHours}</h2>
               <span className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-xs text-muted-foreground ring-1 ring-border ring-inset">
-                <CalendarDays className="size-3.5" /> Today
+                <CalendarDays className="size-3.5" /> {o.today}
               </span>
             </div>
-            <ClinicHours opensAt={opensAt} closesAt={closesAt} now={now} intervals={formatHours(open)} />
+            <ClinicHours opensAt={opensAt} closesAt={closesAt} now={now} intervals={formatHours(open)} o={o} locale={locale} />
           </Panel>
         </div>
 
@@ -258,17 +266,18 @@ export default async function OverviewPage({ params, searchParams }: PageProps<"
         <Panel className="grid gap-4 md:order-last md:col-span-2 sm:grid-cols-2 xl:order-none xl:col-span-6">
           <div className="flex flex-col justify-between gap-6">
             <div className="grid gap-1">
-              <h2 className="text-lg font-medium tracking-tight">Today&apos;s flow</h2>
-              <p className="text-sm text-muted-foreground">Where today&apos;s patients are, from booked to seen.</p>
+              <h2 className="text-lg font-medium tracking-tight">{o.flow}</h2>
+              <p className="text-sm text-muted-foreground">{o.flowBody}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <FlowTile icon={<Check />} label="Seen" value={done} note={byStatus("no_show") ? `${byStatus("no_show")} no-show` : "patients"} />
-              <FlowTile icon={<Clock3 />} label="Still to come" value={confirmed + pendingToday} note={pendingToday ? `${pendingToday} pending` : "patients"} />
+              <FlowTile icon={<Check />} label={o.seen} value={done} note={byStatus("no_show") ? o.noShows(byStatus("no_show")) : o.patients} />
+              <FlowTile icon={<Clock3 />} label={o.stillToCome} value={confirmed + pendingToday} note={pendingToday ? o.pendingN(pendingToday) : o.patients} />
             </div>
           </div>
           <StatusDonut
             counts={(["completed", "confirmed", "pending", "no_show"] as const).map((s) => ({ status: s, n: byStatus(s) }))}
             cancelled={overview.todayBookings.length - today.length}
+            d={d}
           />
         </Panel>
 
@@ -277,17 +286,17 @@ export default async function OverviewPage({ params, searchParams }: PageProps<"
           className="sage-glow relative flex min-h-72 flex-col justify-between gap-6 overflow-hidden rounded-[1.25rem] p-5 text-white xl:col-span-3"
         >
           <div className="grid gap-1">
-            <h2 className="text-lg font-medium tracking-tight">Your booking page</h2>
-            <p className="text-sm text-white/80">Share it on Facebook or Viber, or print it as a QR code.</p>
+            <h2 className="text-lg font-medium tracking-tight">{o.bookingPage}</h2>
+            <p className="text-sm text-white/80">{o.bookingPageBody}</p>
           </div>
           <div className="grid gap-2">
             {manager ? (
               <div className="flex flex-wrap gap-1.5">
                 <Link href={`${base}/share`} className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[11px] backdrop-blur-sm transition-colors hover:bg-white/25">
-                  <QrCode className="size-3" /> QR code
+                  <QrCode className="size-3" /> {o.qr}
                 </Link>
                 <Link href={`${base}/share`} className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[11px] backdrop-blur-sm transition-colors hover:bg-white/25">
-                  Embed on your website
+                  {o.embed}
                 </Link>
               </div>
             ) : null}
@@ -388,31 +397,27 @@ function Tile({
   );
 }
 
-function WeekLoad({ days, total, href }: { days: { date: string; n: number }[]; total: number; href: string }) {
-  const peak = Math.max(1, ...days.map((d) => d.n));
+function WeekLoad({ days, total, href, d, locale }: { days: { date: string; n: number }[]; total: number; href: string; d: DashCopy; locale: Locale }) {
+  const peak = Math.max(1, ...days.map((x) => x.n));
   return (
     <Link href={href} className="grid gap-3 rounded-[1.25rem] bg-background p-5 transition-colors hover:bg-background/80">
       <div className="flex items-start justify-between gap-3">
         <p className="text-5xl leading-none font-medium tracking-tight tabular-nums">{total}</p>
         <div className="grid gap-1 text-[11px] text-muted-foreground">
-          <Legend swatch="bg-primary" label="Today" />
-          <Legend swatch="bg-sage-soft" label="Coming days" />
+          <Legend swatch="bg-primary" label={d.overview.legendToday} />
+          <Legend swatch="bg-sage-soft" label={d.overview.legendComing} />
         </div>
       </div>
       <div className="flex items-end justify-between gap-3">
-        <p className="text-sm leading-snug font-medium">
-          Appointments in
-          <br />
-          the next 7 days
-        </p>
-        <div className="flex h-14 items-end gap-1" role="img" aria-label={days.map((d) => `${fmtLocalDate(d.date, { weekday: "short" })} ${d.n}`).join(", ")}>
-          {days.map((d, i) => (
-            <span key={d.date} className="grid justify-items-center gap-1">
+        <p className="max-w-[10rem] text-sm leading-snug font-medium">{d.overview.week}</p>
+        <div className="flex h-14 items-end gap-1" role="img" aria-label={days.map((x) => `${fmtLocalDate(x.date, { weekday: "short" }, locale)} ${x.n}`).join(", ")}>
+          {days.map((day, i) => (
+            <span key={day.date} className="grid justify-items-center gap-1">
               <span
                 className={cn("w-2.5 rounded-full", i === 0 ? "bg-primary" : "bg-sage-soft")}
-                style={{ height: `${Math.max(4, (d.n / peak) * 40)}px` }}
+                style={{ height: `${Math.max(4, (day.n / peak) * 40)}px` }}
               />
-              <span className="text-[9px] leading-none text-muted-foreground">{fmtLocalDate(d.date, { weekday: "narrow" })}</span>
+              <span className="text-[9px] leading-none text-muted-foreground">{d.weekdaysNarrow[new Date(`${day.date}T00:00:00Z`).getUTCDay()]}</span>
             </span>
           ))}
         </div>
@@ -421,17 +426,31 @@ function WeekLoad({ days, total, href }: { days: { date: string; n: number }[]; 
   );
 }
 
-function ClinicHours({ opensAt, closesAt, now, intervals }: { opensAt: number | null; closesAt: number | null; now: number; intervals: string | null }) {
+function ClinicHours({
+  opensAt,
+  closesAt,
+  now,
+  intervals,
+  o,
+  locale,
+}: {
+  opensAt: number | null;
+  closesAt: number | null;
+  now: number;
+  intervals: string | null;
+  o: DashCopy["overview"];
+  locale: Locale;
+}) {
   if (opensAt === null || closesAt === null) {
-    return <p className="text-sm text-muted-foreground">Closed today.</p>;
+    return <p className="text-sm text-muted-foreground">{o.closedToday}</p>;
   }
   const progress = Math.round(Math.min(1, Math.max(0, (now - opensAt) / (closesAt - opensAt))) * 100);
   const left = closesAt - now;
-  const status = now < opensAt ? `Opens at ${fmtClock(opensAt)}` : now >= closesAt ? "Closed for the day" : `${Math.floor(left / 60)}h ${left % 60}m remaining`;
+  const status = now < opensAt ? o.opensAt(fmtClock(opensAt, locale)) : now >= closesAt ? o.closedForDay : o.remaining(Math.floor(left / 60), left % 60);
   return (
     <div className="grid gap-2">
       <div className="flex items-baseline justify-between gap-3 text-[13px]">
-        <span className="font-medium">{now >= opensAt && now < closesAt ? "Open now" : "Today"}</span>
+        <span className="font-medium">{now >= opensAt && now < closesAt ? o.openNow : o.today}</span>
         <span className="text-muted-foreground tabular-nums">{progress}%</span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-muted">
@@ -472,7 +491,7 @@ const SWATCH: Record<string, string> = {
 };
 
 /** Today's appointments by status, as a donut with a total in the middle. */
-function StatusDonut({ counts, cancelled }: { counts: { status: BookingStatus; n: number }[]; cancelled: number }) {
+function StatusDonut({ counts, cancelled, d }: { counts: { status: BookingStatus; n: number }[]; cancelled: number; d: DashCopy }) {
   const total = counts.reduce((a, c) => a + c.n, 0);
   const r = 52;
   const c = 2 * Math.PI * r;
@@ -485,7 +504,7 @@ function StatusDonut({ counts, cancelled }: { counts: { status: BookingStatus; n
   }));
   return (
     <div className="grid gap-3 rounded-2xl bg-sage-soft/60 p-4">
-      <p className="text-sm font-medium">By status</p>
+      <p className="text-sm font-medium">{d.overview.byStatus}</p>
       <div className="relative mx-auto size-40">
         <svg viewBox="0 0 128 128" className="size-full -rotate-90" aria-hidden>
           <circle cx="64" cy="64" r={r} fill="none" strokeWidth="14" className="stroke-background/70" />
@@ -506,17 +525,17 @@ function StatusDonut({ counts, cancelled }: { counts: { status: BookingStatus; n
         </svg>
         <div className="absolute inset-0 grid place-content-center text-center">
           <span className="text-3xl leading-none font-medium tabular-nums">{total}</span>
-          <span className="pt-1 text-[11px] text-muted-foreground">{total === 1 ? "appointment" : "appointments"}</span>
+          <span className="pt-1 text-[11px] text-muted-foreground">{d.overview.appointmentsN(total)}</span>
         </div>
       </div>
       <ul className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] text-foreground/80">
         {counts.map((x) => (
           <li key={x.status} className="inline-flex items-center gap-1.5 tabular-nums">
             <span aria-hidden className={cn("size-2 rounded-full", SWATCH[x.status])} />
-            {STATUS_LABEL[x.status]} {x.n}
+            {d.status[x.status]} {x.n}
           </li>
         ))}
-        {cancelled ? <li className="text-muted-foreground tabular-nums">Cancelled {cancelled}</li> : null}
+        {cancelled ? <li className="text-muted-foreground tabular-nums">{d.overview.cancelledN(cancelled)}</li> : null}
       </ul>
     </div>
   );

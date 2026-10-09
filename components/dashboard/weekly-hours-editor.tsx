@@ -4,7 +4,7 @@ import { Copy, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { WEEKDAYS } from "@/lib/format";
+import { useSiteCopy } from "@/components/i18n/site-locale";
 import { cn } from "@/lib/utils";
 
 type Interval = { weekday: number; startMin: number; endMin: number };
@@ -37,6 +37,9 @@ function toIntervals(days: Day[]): Interval[] {
 
 /** Editable weekly schedule; submits as JSON in a hidden `schedule` field. */
 export function WeeklyHoursEditor({ initial, disabled }: { initial: Interval[]; disabled?: boolean }) {
+  const { t } = useSiteCopy();
+  const h = t.dash.hours;
+  const WEEKDAYS = t.dash.weekdays;
   const [days, setDays] = useState<Day[]>(() => fromIntervals(initial));
   const set = (d: number, next: Day) => setDays((all) => all.map((x, i) => (i === d ? next : x)));
 
@@ -48,8 +51,8 @@ export function WeeklyHoursEditor({ initial, disabled }: { initial: Interval[]; 
         return (
           <div key={d} className="grid grid-cols-[7.5rem_1fr] items-start gap-3 border-b py-2.5 last:border-0 sm:grid-cols-[9rem_1fr]">
             <label className="flex h-9 cursor-pointer items-center gap-2.5 text-sm">
-              <Switch checked={day.open} onCheckedChange={(open) => set(d, { ...day, open })} aria-label={`Open on ${WEEKDAYS[d]}`} />
-              <span className={day.open ? "" : "text-muted-foreground"}>{WEEKDAYS[d].slice(0, 3)}</span>
+              <Switch checked={day.open} onCheckedChange={(open) => set(d, { ...day, open })} aria-label={h.openOn(WEEKDAYS[d])} />
+              <span className={day.open ? "" : "text-muted-foreground"}>{t.dash.weekdaysShort[d]}</span>
             </label>
             {day.open ? (
               <div className="grid gap-2">
@@ -58,7 +61,7 @@ export function WeeklyHoursEditor({ initial, disabled }: { initial: Interval[]; 
                     <input
                       type="time"
                       value={r.start}
-                      aria-label={`${WEEKDAYS[d]} opens`}
+                      aria-label={h.opens(WEEKDAYS[d])}
                       onChange={(e) => set(d, { ...day, ranges: day.ranges.map((x, j) => (j === i ? { ...x, start: e.target.value } : x)) })}
                       className="h-9 rounded-md border bg-background px-2 text-sm tabular-nums"
                     />
@@ -66,12 +69,12 @@ export function WeeklyHoursEditor({ initial, disabled }: { initial: Interval[]; 
                     <input
                       type="time"
                       value={r.end}
-                      aria-label={`${WEEKDAYS[d]} closes`}
+                      aria-label={h.closes(WEEKDAYS[d])}
                       onChange={(e) => set(d, { ...day, ranges: day.ranges.map((x, j) => (j === i ? { ...x, end: e.target.value } : x)) })}
                       className="h-9 rounded-md border bg-background px-2 text-sm tabular-nums"
                     />
                     {day.ranges.length > 1 ? (
-                      <Button variant="ghost" size="icon" className="size-8" aria-label="Remove range" onClick={() => set(d, { ...day, ranges: day.ranges.filter((_, j) => j !== i) })}>
+                      <Button variant="ghost" size="icon" className="size-8" aria-label={h.removeRange} onClick={() => set(d, { ...day, ranges: day.ranges.filter((_, j) => j !== i) })}>
                         <X />
                       </Button>
                     ) : null}
@@ -81,8 +84,8 @@ export function WeeklyHoursEditor({ initial, disabled }: { initial: Interval[]; 
                           variant="ghost"
                           size="icon"
                           className="size-8"
-                          aria-label="Add a break / second range"
-                          title="Add another range (e.g. after lunch)"
+                          aria-label={h.addRange}
+                          title={h.addRangeHint}
                           onClick={() => set(d, { ...day, ranges: [...day.ranges, { start: r.end, end: r.end < "17:00" ? "17:00" : "20:00" }] })}
                         >
                           <Plus />
@@ -91,8 +94,8 @@ export function WeeklyHoursEditor({ initial, disabled }: { initial: Interval[]; 
                           variant="ghost"
                           size="icon"
                           className="size-8"
-                          aria-label="Copy to all open days"
-                          title="Copy these hours to every open day"
+                          aria-label={h.copyAll}
+                          title={h.copyAllHint}
                           onClick={() => setDays((all) => all.map((x) => (x.open ? { ...x, ranges: day.ranges.map((y) => ({ ...y })) } : x)))}
                         >
                           <Copy />
@@ -103,7 +106,7 @@ export function WeeklyHoursEditor({ initial, disabled }: { initial: Interval[]; 
                 ))}
               </div>
             ) : (
-              <p className="flex h-9 items-center text-sm text-muted-foreground">Closed</p>
+              <p className="flex h-9 items-center text-sm text-muted-foreground">{h.closed}</p>
             )}
           </div>
         );

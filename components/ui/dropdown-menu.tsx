@@ -2,15 +2,18 @@
 
 import { DropdownMenu as Radix } from "radix-ui";
 import type { ComponentProps } from "react";
+import { useSiteCopy } from "@/components/i18n/site-locale";
 import { cn } from "@/lib/utils";
 
 export const DropdownMenu = Radix.Root;
 export const DropdownMenuTrigger = Radix.Trigger;
 
 export function DropdownMenuContent({ className, sideOffset = 6, ...props }: ComponentProps<typeof Radix.Content>) {
+  const { locale } = useSiteCopy();
   return (
     <Radix.Portal>
       <Radix.Content
+        lang={locale}
         sideOffset={sideOffset}
         className={cn("z-50 min-w-48 rounded-md border bg-background p-1 shadow-md outline-none", className)}
         {...props}

@@ -8,7 +8,7 @@ import { useSiteCopy } from "@/components/i18n/site-locale";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/misc";
-import { INTL_LOCALE } from "@/lib/i18n";
+import { fmtTime as formatTime } from "@/lib/format";
 import { addDays, dateInZone, weekday } from "@/lib/scheduling/time";
 import { cn } from "@/lib/utils";
 import { DEMO_BUSINESS } from "./demo-business";
@@ -32,7 +32,8 @@ const tz = DEMO_BUSINESS.timezone;
  */
 export function BookingDemo({ className }: { className?: string }) {
   const { locale, t } = useSiteCopy();
-  const fmtTime = new Intl.DateTimeFormat(INTL_LOCALE[locale], { hour: "numeric", minute: "2-digit", timeZone: tz });
+  // Shared formatter: identical on server and client in both languages.
+  const fmtTime = { format: (d: Date) => formatTime(d, tz, locale) };
   const dayLabel = (date: string, today: string) =>
     date === today ? t.demo.today : date === addDays(today, 1) ? t.demo.tomorrow : t.demo.weekdays[weekday(date)];
   const api = useMemo(() => demoApi(DEMO_BUSINESS), []);

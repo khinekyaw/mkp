@@ -10,4 +10,4 @@
 - `lib/scheduling` is pure; keep it I/O-free and covered by `pnpm test`.
 - UI primitives read CSS variables; re-theme with `ThemeScope`, don't hardcode brand colors.
 - Visual system: `DESIGN.md`, product truth: `PRODUCT.md`. App tokens (`--canvas`, `--ink-pill`, `--sage-*`, `--tone-*`) are for our own surfaces only, never inside the clinic-branded widget.
-- Site copy (landing, auth, onboarding, studio) lives in `lib/site-copy.ts` in English and Myanmar; never hardcode user-facing strings there or repeat a line in both languages. Patient copy is `lib/i18n.ts`.
+- All our UI copy (landing, auth, onboarding, studio, dashboard incl. Server Action messages) lives in `lib/site-copy.ts` / `lib/copy/dashboard.ts` in English and Myanmar; never hardcode user-facing strings or repeat a line in both languages. Format dates with `lib/format.ts` and pass `locale` (never `Intl` for Burmese). Patient copy is `lib/i18n.ts`.

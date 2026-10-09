@@ -5,20 +5,24 @@ import { PageHeader } from "@/components/ui/page";
 import { requireBusiness } from "@/lib/business/access";
 import { getPublicBusiness } from "@/lib/business/public";
 import { saveThemeAction } from "@/lib/dashboard/actions/business";
+import { getSiteCopy } from "@/lib/site-locale";
 
-export const metadata: Metadata = { title: "Appearance" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getSiteCopy();
+  return { title: t.dash.meta.appearance };
+}
 
 export default async function AppearancePage({ params, searchParams }: PageProps<"/dashboard/[biz]/appearance">) {
   const [{ biz }, query] = await Promise.all([params, searchParams]);
-  const { business } = await requireBusiness(biz, "admin");
+  const [{ business }, { t }] = await Promise.all([requireBusiness(biz, "admin"), getSiteCopy()]);
   const publicBusiness = await getPublicBusiness({ id: business.id });
   if (!publicBusiness) notFound();
 
   return (
     <>
       <PageHeader
-        title="Appearance"
-        description="Paste your website and we'll match the booking widget and page to your brand."
+        title={t.dash.appearance.title}
+        description={t.dash.appearance.description}
       />
       <Studio
         business={publicBusiness}

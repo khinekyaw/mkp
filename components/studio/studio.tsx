@@ -46,8 +46,8 @@ export function Studio({ business, mode, initialTheme, initialUrl, autoDetect, s
       const res = await saveTheme(theme, result?.signals.url ?? null);
       if (res?.ok) {
         setSaved(theme);
-        toast.success("Theme saved. Your widget and booking page are updated.");
-      } else toast.error(res?.error ?? "Couldn't save the theme.");
+        toast.success(t.dash.appearance.saved);
+      } else toast.error(res?.error ?? t.dash.appearance.failed);
     });
   }
 
@@ -92,9 +92,9 @@ export function Studio({ business, mode, initialTheme, initialUrl, autoDetect, s
         <ThemeEditor theme={theme} onChange={setTheme} onReset={() => setTheme(result?.theme ?? saved)} showName={mode === "demo"} />
         {saveTheme ? (
           <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-lg border bg-background p-3 shadow-sm">
-            <p className="text-sm text-muted-foreground">{dirty ? "Unsaved changes" : "All changes saved"}</p>
+            <p className="text-sm text-muted-foreground">{dirty ? t.dash.appearance.unsaved : t.dash.appearance.allSaved}</p>
             <Button onClick={save} disabled={!dirty || saving}>
-              {saving ? <Spinner /> : dirty ? <Save /> : <Check />} Save theme
+              {saving ? <Spinner /> : dirty ? <Save /> : <Check />} {t.dash.appearance.save}
             </Button>
           </div>
         ) : null}

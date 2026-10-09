@@ -6,11 +6,13 @@ export type ActionResult = {
   error?: string;
   fields?: Record<string, string[] | undefined>;
   message?: string;
+  /** Machine-readable reason (e.g. a BookingErrorCode) so clients don't match on translated text. */
+  code?: string;
 };
 export type ActionState = ActionResult | null;
 
-export function fieldErrors(error: z.ZodError): ActionResult {
-  return { ok: false, error: "Please check the highlighted fields.", fields: error.flatten().fieldErrors as Record<string, string[]> };
+export function fieldErrors(error: z.ZodError, message = "Please check the highlighted fields."): ActionResult {
+  return { ok: false, error: message, fields: error.flatten().fieldErrors as Record<string, string[]> };
 }
 
 /** Reads a FormData into a plain object (checkbox "on" → true). */

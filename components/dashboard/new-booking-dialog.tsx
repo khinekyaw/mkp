@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { createStaffBookingAction, staffSlotsAction, type StaffSlots } from "@/lib/dashboard/actions/bookings";
 import { fmtMinutes, fmtTime } from "@/lib/format";
+import { useSiteCopy } from "@/components/i18n/site-locale";
 import { cn } from "@/lib/utils";
 
 type Service = { id: string; name: string; durationMin: number; providerIds: string[] };
@@ -31,6 +32,8 @@ export function NewBookingDialog({
   defaultDate: string;
   trigger?: React.ReactNode;
 }) {
+  const { locale, t } = useSiteCopy();
+  const b = t.dash.booking;
   const [open, setOpen] = useState(false);
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
   const [providerId, setProviderId] = useState<string>("");
@@ -66,7 +69,7 @@ export function NewBookingDialog({
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!start) {
-      setError("Choose a time.");
+      setError(t.dash.msg.chooseTime);
       return;
     }
     const form = new FormData(e.currentTarget);
@@ -82,16 +85,16 @@ export function NewBookingDialog({
         locale: form.get("locale") === "my" ? "my" : "en",
       });
       if (res?.ok) {
-        toast.success("Appointment booked");
+        toast.success(b.booked);
         setOpen(false);
         setStart(null);
         setSlots(null);
         setFields({});
         setError(null);
       } else {
-        setError(res?.error ?? "Something went wrong.");
+        setError(res?.error ?? t.dash.common.somethingWrong);
         setFields(res?.fields ?? {});
-        if (res?.error?.includes("available")) setSlots(null);
+        if (res?.code === "slot_unavailable") setSlots(null);
       }
     });
   }
@@ -101,28 +104,28 @@ export function NewBookingDialog({
       <DialogTrigger asChild>
         {trigger ?? (
           <Button>
-            <Plus /> New appointment
+            <Plus /> {b.newAppointment}
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent title="New appointment" description="Book a walk-in or phone call." className="max-w-xl">
+      <DialogContent title={b.newAppointment} description={b.newDescription} className="max-w-xl">
         {services.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Add a service with at least one staff member first.</p>
+          <p className="text-sm text-muted-foreground">{b.addServiceFirst}</p>
         ) : (
           <form onSubmit={onSubmit} className="grid gap-4">
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Service" htmlFor="nb-service">
+              <Field label={b.service} htmlFor="nb-service">
                 <Select id="nb-service" value={serviceId} onChange={(e) => choose(setServiceId)(e.target.value)}>
                   {services.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.name} · {fmtMinutes(s.durationMin)}
+                      {s.name} · {fmtMinutes(s.durationMin, locale)}
                     </option>
                   ))}
                 </Select>
               </Field>
-              <Field label="With" htmlFor="nb-provider">
+              <Field label={b.with} htmlFor="nb-provider">
                 <Select id="nb-provider" value={providerId} onChange={(e) => choose(setProviderId)(e.target.value)}>
-                  <option value="">Any available</option>
+                  <option value="">{b.anyAvailable}</option>
                   {eligible.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
@@ -131,12 +134,12 @@ export function NewBookingDialog({
                 </Select>
               </Field>
             </div>
-            <Field label="Date" htmlFor="nb-date">
+            <Field label={b.date} htmlFor="nb-date">
               <Input id="nb-date" type="date" value={date} onChange={(e) => choose(setDate)(e.target.value)} required />
             </Field>
 
             <div className="grid gap-1.5">
-              <p className="text-xs font-medium text-muted-foreground">Time</p>
+              <p className="text-xs font-medium text-muted-foreground">{b.time}</p>
               {!slots ? (
                 <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
                   {Array.from({ length: 10 }, (_, i) => (
@@ -158,40 +161,40 @@ export function NewBookingDialog({
                         start === s.start && "border-primary bg-primary text-primary-foreground",
                       )}
                     >
-                      {fmtTime(s.start, timezone)}
+                      {fmtTime(s.start, timezone, locale)}
                     </button>
                   ))}
                 </div>
               ) : (
                 <p className="rounded-md bg-muted px-3 py-4 text-center text-sm text-muted-foreground">
-                  {slots.open ? "Fully booked on this day." : "Closed on this day."}
+                  {slots.open ? b.fullyBooked : b.closedDay}
                 </p>
               )}
             </div>
 
             <div className="grid gap-3 border-t pt-4 sm:grid-cols-2">
-              <Field label="Patient name" htmlFor="nb-name" error={fields.name?.[0]}>
+              <Field label={b.patientName} htmlFor="nb-name" error={fields.name?.[0]}>
                 <Input id="nb-name" name="name" required />
               </Field>
-              <Field label="Phone" htmlFor="nb-phone" error={fields.phone?.[0]}>
+              <Field label={t.dash.common.phone} htmlFor="nb-phone" error={fields.phone?.[0]}>
                 <Input id="nb-phone" name="phone" type="tel" placeholder="09 123 456 789" required />
               </Field>
-              <Field label="Email (optional)" htmlFor="nb-email" error={fields.email?.[0]}>
+              <Field label={b.emailOptional} htmlFor="nb-email" error={fields.email?.[0]}>
                 <Input id="nb-email" name="email" type="email" />
               </Field>
-              <Field label="Language" htmlFor="nb-locale">
+              <Field label={t.dash.common.language} htmlFor="nb-locale">
                 <Select id="nb-locale" name="locale" defaultValue="my">
-                  <option value="my">Burmese</option>
-                  <option value="en">English</option>
+                  <option value="my">{t.dash.common.burmese}</option>
+                  <option value="en">{t.dash.common.english}</option>
                 </Select>
               </Field>
-              <Field label="Note (optional)" htmlFor="nb-note" className="sm:col-span-2">
+              <Field label={b.noteOptional} htmlFor="nb-note" className="sm:col-span-2">
                 <Textarea id="nb-note" name="note" rows={2} />
               </Field>
             </div>
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
             <Button type="submit" disabled={saving || !start}>
-              {saving ? <Spinner /> : null} Book appointment
+              {saving ? <Spinner /> : null} {b.book}
             </Button>
           </form>
         )}

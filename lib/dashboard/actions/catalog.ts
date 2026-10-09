@@ -8,6 +8,16 @@ import { fieldErrors, type ActionState } from "../../actions";
 import { requireBusiness } from "../../business/access";
 import { db, schema } from "../../db";
 import { zonedToUtc, addDays } from "../../scheduling/time";
+import { getSiteCopy } from "../../site-locale";
+import type { DashCopy } from "../../copy/dashboard";
+
+type Msg = DashCopy["msg"];
+
+/** The business plus the visitor's dashboard messages. */
+async function context(slug: string) {
+  const [access, { t }] = await Promise.all([requireBusiness(slug, "admin"), getSiteCopy()]);
+  return { business: access.business, m: t.dash.msg };
+}
 
 // ---------------------------------------------------------------------------
 // Services
@@ -20,27 +30,28 @@ const optionalInt = (max: number) =>
     .transform((v) => (v === "" ? null : Number(v.replace(/[,\s]/g, ""))))
     .pipe(z.number().int().min(0).max(max).nullable());
 
-const serviceSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().trim().min(2, "Enter a name").max(80),
-  nameMy: z.string().trim().max(80).optional(),
-  description: z.string().trim().max(500).optional(),
-  durationMin: z.coerce.number().int().min(5, "At least 5 minutes").max(600),
-  bufferMin: z.coerce.number().int().min(0).max(240).default(0),
-  price: optionalInt(100_000_000),
-  currency: z.string().trim().length(3).toUpperCase().default("MMK"),
-  active: z.boolean().default(false),
-  providerIds: z.array(z.string()).default([]),
-});
+const serviceSchema = (m: Msg) =>
+  z.object({
+    id: z.string().optional(),
+    name: z.string().trim().min(2, m.enterName).max(80),
+    nameMy: z.string().trim().max(80).optional(),
+    description: z.string().trim().max(500).optional(),
+    durationMin: z.coerce.number().int().min(5, m.atLeast5).max(600),
+    bufferMin: z.coerce.number().int().min(0).max(240).default(0),
+    price: optionalInt(100_000_000),
+    currency: z.string().trim().length(3).toUpperCase().default("MMK"),
+    active: z.boolean().default(false),
+    providerIds: z.array(z.string()).default([]),
+  });
 
 export async function saveServiceAction(slug: string, _: ActionState, form: FormData): Promise<ActionState> {
-  const { business } = await requireBusiness(slug, "admin");
-  const parsed = serviceSchema.safeParse({
+  const { business, m } = await context(slug);
+  const parsed = serviceSchema(m).safeParse({
     ...Object.fromEntries(form),
     active: form.get("active") === "on",
     providerIds: form.getAll("providerIds").map(String),
   });
-  if (!parsed.success) return fieldErrors(parsed.error);
+  if (!parsed.success) return fieldErrors(parsed.error, m.checkFields);
   const { id, providerIds, ...data } = parsed.data;
   const values = { ...data, nameMy: data.nameMy || null, description: data.description || null };
 
@@ -74,11 +85,11 @@ export async function saveServiceAction(slug: string, _: ActionState, form: Form
     }
   });
   refresh();
-  return { ok: true, message: id ? "Service updated" : "Service added" };
+  return { ok: true, message: id ? m.serviceUpdated : m.serviceAdded };
 }
 
 export async function deleteServiceAction(slug: string, serviceId: string): Promise<ActionState> {
-  const { business } = await requireBusiness(slug, "admin");
+  const { business, m } = await context(slug);
   const [{ n }] = await db.select({ n: count() }).from(schema.booking).where(eq(schema.booking.serviceId, serviceId));
   if (Number(n) > 0) {
     // Keep history intact: services with bookings are hidden, not deleted.
@@ -87,35 +98,36 @@ export async function deleteServiceAction(slug: string, serviceId: string): Prom
       .set({ active: false })
       .where(and(eq(schema.service.id, serviceId), eq(schema.service.businessId, business.id)));
     refresh();
-    return { ok: true, message: "Service has bookings, so it was hidden instead of deleted" };
+    return { ok: true, message: m.serviceHidden };
   }
   await db.delete(schema.service).where(and(eq(schema.service.id, serviceId), eq(schema.service.businessId, business.id)));
   refresh();
-  return { ok: true, message: "Service deleted" };
+  return { ok: true, message: m.serviceDeleted };
 }
 
 // ---------------------------------------------------------------------------
 // Staff (providers)
 // ---------------------------------------------------------------------------
 
-const providerSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().trim().min(2, "Enter a name").max(80),
-  title: z.string().trim().max(80).optional(),
-  bio: z.string().trim().max(500).optional(),
-  active: z.boolean().default(true),
-  serviceIds: z.array(z.string()).default([]),
-});
+const providerSchema = (m: Msg) =>
+  z.object({
+    id: z.string().optional(),
+    name: z.string().trim().min(2, m.enterName).max(80),
+    title: z.string().trim().max(80).optional(),
+    bio: z.string().trim().max(500).optional(),
+    active: z.boolean().default(true),
+    serviceIds: z.array(z.string()).default([]),
+  });
 
 export async function saveProviderAction(slug: string, _: ActionState, form: FormData): Promise<ActionState> {
-  const { business } = await requireBusiness(slug, "admin");
+  const { business, m } = await context(slug);
   const isNew = !form.get("id");
-  const parsed = providerSchema.safeParse({
+  const parsed = providerSchema(m).safeParse({
     ...Object.fromEntries(form),
     active: isNew ? true : form.get("active") === "on",
     serviceIds: form.getAll("serviceIds").map(String),
   });
-  if (!parsed.success) return fieldErrors(parsed.error);
+  if (!parsed.success) return fieldErrors(parsed.error, m.checkFields);
   const { id, serviceIds, ...data } = parsed.data;
   const values = { ...data, title: data.title || null, bio: data.bio || null };
   const validServices = (
@@ -150,11 +162,11 @@ export async function saveProviderAction(slug: string, _: ActionState, form: For
 
   if (isNew) redirect(`/dashboard/${business.slug}/staff/${providerId}?created=1`);
   refresh();
-  return { ok: true, message: "Saved" };
+  return { ok: true, message: m.saved };
 }
 
 export async function deleteProviderAction(slug: string, providerId: string): Promise<ActionState> {
-  const { business } = await requireBusiness(slug, "admin");
+  const { business, m } = await context(slug);
   const [{ n }] = await db.select({ n: count() }).from(schema.booking).where(eq(schema.booking.providerId, providerId));
   if (Number(n) > 0) {
     await db
@@ -162,7 +174,7 @@ export async function deleteProviderAction(slug: string, providerId: string): Pr
       .set({ active: false })
       .where(and(eq(schema.provider.id, providerId), eq(schema.provider.businessId, business.id)));
     refresh();
-    return { ok: true, message: "Has past bookings, so they were deactivated instead of deleted" };
+    return { ok: true, message: m.providerDeactivated };
   }
   await db.delete(schema.provider).where(and(eq(schema.provider.id, providerId), eq(schema.provider.businessId, business.id)));
   redirect(`/dashboard/${business.slug}/staff`);
@@ -172,33 +184,34 @@ export async function deleteProviderAction(slug: string, providerId: string): Pr
 // Weekly hours
 // ---------------------------------------------------------------------------
 
-const intervalsSchema = z
-  .array(z.object({ weekday: z.number().int().min(0).max(6), startMin: z.number().int().min(0).max(1440), endMin: z.number().int().min(0).max(1440) }))
-  .max(70)
-  .superRefine((rows, ctx) => {
-    for (const r of rows) {
-      if (r.endMin <= r.startMin) ctx.addIssue({ code: "custom", message: "Each closing time must be after its opening time." });
-    }
-    for (let d = 0; d < 7; d++) {
-      const day = rows.filter((r) => r.weekday === d).sort((a, b) => a.startMin - b.startMin);
-      for (let i = 1; i < day.length; i++) {
-        if (day[i].startMin < day[i - 1].endMin) ctx.addIssue({ code: "custom", message: "Time ranges on the same day can't overlap." });
+const intervalsSchema = (m: Msg) =>
+  z
+    .array(z.object({ weekday: z.number().int().min(0).max(6), startMin: z.number().int().min(0).max(1440), endMin: z.number().int().min(0).max(1440) }))
+    .max(70)
+    .superRefine((rows, ctx) => {
+      for (const r of rows) {
+        if (r.endMin <= r.startMin) ctx.addIssue({ code: "custom", message: m.closingAfterOpening });
       }
-    }
-  });
+      for (let d = 0; d < 7; d++) {
+        const day = rows.filter((r) => r.weekday === d).sort((a, b) => a.startMin - b.startMin);
+        for (let i = 1; i < day.length; i++) {
+          if (day[i].startMin < day[i - 1].endMin) ctx.addIssue({ code: "custom", message: m.noOverlap });
+        }
+      }
+    });
 
-function parseIntervals(form: FormData) {
+function parseIntervals(form: FormData, m: Msg) {
   try {
-    return intervalsSchema.safeParse(JSON.parse(String(form.get("schedule") ?? "[]")));
+    return intervalsSchema(m).safeParse(JSON.parse(String(form.get("schedule") ?? "[]")));
   } catch {
-    return intervalsSchema.safeParse(null);
+    return intervalsSchema(m).safeParse(null);
   }
 }
 
 export async function saveBusinessHoursAction(slug: string, _: ActionState, form: FormData): Promise<ActionState> {
-  const { business } = await requireBusiness(slug, "admin");
-  const parsed = parseIntervals(form);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid hours" };
+  const { business, m } = await context(slug);
+  const parsed = parseIntervals(form, m);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? m.invalidHours };
   await db.transaction(async (tx) => {
     await tx.delete(schema.schedule).where(and(eq(schema.schedule.businessId, business.id), isNull(schema.schedule.providerId)));
     if (parsed.data.length) {
@@ -206,14 +219,14 @@ export async function saveBusinessHoursAction(slug: string, _: ActionState, form
     }
   });
   refresh();
-  return { ok: true, message: "Opening hours saved" };
+  return { ok: true, message: m.hoursSaved };
 }
 
 export async function saveProviderHoursAction(slug: string, providerId: string, _: ActionState, form: FormData): Promise<ActionState> {
-  const { business } = await requireBusiness(slug, "admin");
+  const { business, m } = await context(slug);
   const useBusinessHours = form.get("useBusinessHours") === "on";
-  const parsed = parseIntervals(form);
-  if (!useBusinessHours && !parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid hours" };
+  const parsed = parseIntervals(form, m);
+  if (!useBusinessHours && !parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? m.invalidHours };
   await db.transaction(async (tx) => {
     const [p] = await tx
       .update(schema.provider)
@@ -227,34 +240,35 @@ export async function saveProviderHoursAction(slug: string, providerId: string, 
     }
   });
   refresh();
-  return { ok: true, message: "Working hours saved" };
+  return { ok: true, message: m.workingHoursSaved };
 }
 
 // ---------------------------------------------------------------------------
 // Time off & closures
 // ---------------------------------------------------------------------------
 
-const timeOffSchema = z
-  .object({
-    providerId: z.string().optional(),
-    allDay: z.boolean(),
-    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Choose a start date"),
-    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Choose an end date"),
-    startTime: z.string().regex(/^\d{2}:\d{2}$/).optional().or(z.literal("")),
-    endTime: z.string().regex(/^\d{2}:\d{2}$/).optional().or(z.literal("")),
-    reason: z.string().trim().max(120).optional(),
-  })
-  .refine((v) => v.allDay || (v.startTime && v.endTime), { message: "Choose start and end times", path: ["startTime"] });
+const timeOffSchema = (m: Msg) =>
+  z
+    .object({
+      providerId: z.string().optional(),
+      allDay: z.boolean(),
+      startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, m.chooseStartDate),
+      endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, m.chooseEndDate),
+      startTime: z.string().regex(/^\d{2}:\d{2}$/).optional().or(z.literal("")),
+      endTime: z.string().regex(/^\d{2}:\d{2}$/).optional().or(z.literal("")),
+      reason: z.string().trim().max(120).optional(),
+    })
+    .refine((v) => v.allDay || (v.startTime && v.endTime), { message: m.chooseTimes, path: ["startTime"] });
 
 export async function addTimeOffAction(slug: string, _: ActionState, form: FormData): Promise<ActionState> {
-  const { business } = await requireBusiness(slug, "admin");
-  const parsed = timeOffSchema.safeParse({ ...Object.fromEntries(form), allDay: form.get("allDay") === "on" });
-  if (!parsed.success) return fieldErrors(parsed.error);
+  const { business, m } = await context(slug);
+  const parsed = timeOffSchema(m).safeParse({ ...Object.fromEntries(form), allDay: form.get("allDay") === "on" });
+  if (!parsed.success) return fieldErrors(parsed.error, m.checkFields);
   const v = parsed.data;
   const tz = business.timezone;
   const startsAt = v.allDay ? zonedToUtc(v.startDate, "00:00", tz) : zonedToUtc(v.startDate, v.startTime!, tz);
   const endsAt = v.allDay ? zonedToUtc(addDays(v.endDate, 1), "00:00", tz) : zonedToUtc(v.endDate, v.endTime!, tz);
-  if (endsAt <= startsAt) return { ok: false, error: "The end must be after the start.", fields: { endDate: ["Must be after the start"] } };
+  if (endsAt <= startsAt) return { ok: false, error: m.endAfterStart, fields: { endDate: [m.mustBeAfterStart] } };
 
   let providerId: string | null = null;
   if (v.providerId) {
@@ -263,17 +277,17 @@ export async function addTimeOffAction(slug: string, _: ActionState, form: FormD
       .from(schema.provider)
       .where(and(eq(schema.provider.id, v.providerId), eq(schema.provider.businessId, business.id)))
       .limit(1);
-    if (!p) return { ok: false, error: "Staff member not found." };
+    if (!p) return { ok: false, error: m.staffNotFound };
     providerId = p.id;
   }
   await db.insert(schema.timeOff).values({ businessId: business.id, providerId, startsAt, endsAt, reason: v.reason || null });
   refresh();
-  return { ok: true, message: providerId ? "Time off added" : "Closure added" };
+  return { ok: true, message: providerId ? m.timeOffAdded : m.closureAdded };
 }
 
 export async function deleteTimeOffAction(slug: string, id: string): Promise<ActionState> {
-  const { business } = await requireBusiness(slug, "admin");
+  const { business, m } = await context(slug);
   await db.delete(schema.timeOff).where(and(eq(schema.timeOff.id, id), eq(schema.timeOff.businessId, business.id)));
   refresh();
-  return { ok: true, message: "Removed" };
+  return { ok: true, message: m.removed };
 }

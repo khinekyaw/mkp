@@ -9,23 +9,23 @@ import { EmptyState, PageHeader } from "@/components/ui/page";
 import { requireBusiness } from "@/lib/business/access";
 import { listAppointments, listProviders, listServices, type AppointmentFilter } from "@/lib/dashboard/queries";
 import { dateInZone } from "@/lib/scheduling/time";
+import { getSiteCopy } from "@/lib/site-locale";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Appointments" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getSiteCopy();
+  return { title: t.dash.meta.appointments };
+}
 
-const FILTERS: { value: AppointmentFilter; label: string }[] = [
-  { value: "upcoming", label: "Upcoming" },
-  { value: "pending", label: "Pending" },
-  { value: "past", label: "Past" },
-  { value: "cancelled", label: "Cancelled" },
-];
+const FILTERS = ["upcoming", "pending", "past", "cancelled"] as const satisfies readonly AppointmentFilter[];
 const PAGE = 50;
 
 export default async function AppointmentsPage({ params, searchParams }: PageProps<"/dashboard/[biz]/appointments">) {
   const [{ biz }, query] = await Promise.all([params, searchParams]);
-  const { business } = await requireBusiness(biz);
+  const [{ business }, { t }] = await Promise.all([requireBusiness(biz), getSiteCopy()]);
+  const a = t.dash.appointments;
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
-  const filter = (FILTERS.find((f) => f.value === one(query.filter))?.value ?? "upcoming") as AppointmentFilter;
+  const filter: AppointmentFilter = FILTERS.find((f) => f === one(query.filter)) ?? "upcoming";
   const q = one(query.q)?.slice(0, 80) ?? "";
   const limit = Math.min(500, Math.max(PAGE, Number(one(query.limit)) || PAGE));
 
@@ -43,7 +43,7 @@ export default async function AppointmentsPage({ params, searchParams }: PagePro
   return (
     <>
       <PageHeader
-        title="Appointments"
+        title={a.title}
         actions={
           <NewBookingDialog
             slug={business.slug}
@@ -55,25 +55,25 @@ export default async function AppointmentsPage({ params, searchParams }: PagePro
         }
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <nav className="inline-flex rounded-full bg-background p-1" aria-label="Filter">
+        <nav className="inline-flex rounded-full bg-background p-1" aria-label={a.filter}>
           {FILTERS.map((f) => (
             <Link
-              key={f.value}
-              href={`?${new URLSearchParams({ filter: f.value, ...(q ? { q } : {}) })}`}
-              aria-current={f.value === filter ? "page" : undefined}
+              key={f}
+              href={`?${new URLSearchParams({ filter: f, ...(q ? { q } : {}) })}`}
+              aria-current={f === filter ? "page" : undefined}
               className={cn(
                 "rounded-full px-4 py-1.5 text-sm text-muted-foreground hover:text-foreground",
-                f.value === filter && "bg-primary font-medium text-primary-foreground hover:text-primary-foreground",
+                f === filter && "bg-primary font-medium text-primary-foreground hover:text-primary-foreground",
               )}
             >
-              {f.label}
+              {a.filters[f]}
             </Link>
           ))}
         </nav>
         <form className="relative w-full sm:w-64">
           <input type="hidden" name="filter" value={filter} />
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input name="q" defaultValue={q} placeholder="Search name or phone" className="rounded-full border-transparent pl-9" />
+          <Input name="q" defaultValue={q} placeholder={a.search} className="rounded-full border-transparent pl-9" />
         </form>
       </div>
       {rows.length ? (
@@ -83,13 +83,13 @@ export default async function AppointmentsPage({ params, searchParams }: PagePro
       ) : (
         <EmptyState
           icon={<ListChecks />}
-          title={q ? "No matching appointments" : "Nothing here yet"}
-          description={q ? "Try a different name or phone number." : "Appointments will appear here as patients book."}
+          title={q ? a.noMatches : a.nothingYet}
+          description={q ? a.tryDifferent : a.willAppear}
         />
       )}
       {hasMore ? (
         <Link href={href({ limit: limit + PAGE })} scroll={false} className={cn(buttonVariants({ variant: "outline" }), "justify-self-center")}>
-          Load more
+          {a.loadMore}
         </Link>
       ) : null}
     </>

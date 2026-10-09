@@ -13,6 +13,8 @@ import type { BookingStatus } from "../../db/schema";
 import { notifyBookingCreated, notifyCustomerOfStatus } from "../../notifications/booking";
 import { PHONE_PATTERN } from "../../phone";
 import { isDateString } from "../../scheduling/time";
+import { getSiteCopy } from "../../site-locale";
+import type { DashCopy } from "../../copy/dashboard";
 
 const STATUSES = ["pending", "confirmed", "completed", "cancelled", "no_show"] as const;
 
@@ -22,15 +24,15 @@ export async function setBookingStatusAction(
   status: BookingStatus,
   reason?: string,
 ): Promise<ActionState> {
-  const { business } = await requireBusiness(slug, "staff");
-  if (!STATUSES.includes(status)) return { ok: false, error: "Unknown status." };
+  const [{ business }, { t }] = await Promise.all([requireBusiness(slug, "staff"), getSiteCopy()]);
+  if (!STATUSES.includes(status)) return { ok: false, error: t.dash.msg.unknownStatus };
 
   const [current] = await db
     .select({ status: schema.booking.status })
     .from(schema.booking)
     .where(and(eq(schema.booking.id, bookingId), eq(schema.booking.businessId, business.id)))
     .limit(1);
-  if (!current) return { ok: false, error: "Booking not found." };
+  if (!current) return { ok: false, error: t.dash.msg.bookingNotFound };
 
   await db
     .update(schema.booking)
@@ -55,8 +57,8 @@ export async function staffSlotsAction(
   slug: string,
   query: { serviceId: string; providerId: string | null; date: string },
 ): Promise<StaffSlots> {
-  const { business } = await requireBusiness(slug, "staff");
-  if (!isDateString(query.date)) return { error: "Pick a date." };
+  const [{ business }, { t }] = await Promise.all([requireBusiness(slug, "staff"), getSiteCopy()]);
+  if (!isDateString(query.date)) return { error: t.dash.msg.pickDate };
   try {
     const { days } = await getAvailability({
       business,
@@ -68,29 +70,31 @@ export async function staffSlotsAction(
     });
     return { open: days[0].open, slots: days[0].slots };
   } catch (err) {
-    if (err instanceof BookingError) return { error: err.message };
+    if (err instanceof BookingError) return { error: t.dash.msg.bookingErrors[err.code] ?? err.message };
     throw err;
   }
 }
 
-const staffBookingSchema = z.object({
-  serviceId: z.string().min(1, "Choose a service"),
-  providerId: z.string().nullable(),
-  start: z.iso.datetime({ message: "Choose a time" }),
-  name: z.string().trim().min(2, "Enter the patient's name").max(80),
-  phone: z.string().trim().regex(PHONE_PATTERN, "Enter a valid phone number"),
-  email: z.union([z.literal(""), z.email("Enter a valid email")]).optional(),
-  note: z.string().trim().max(500).optional(),
-  locale: z.enum(["en", "my"]).default("en"),
-});
+const staffBookingSchema = (m: DashCopy["msg"]) =>
+  z.object({
+    serviceId: z.string().min(1, m.chooseService),
+    providerId: z.string().nullable(),
+    start: z.iso.datetime({ message: m.chooseTime }),
+    name: z.string().trim().min(2, m.enterPatientName).max(80),
+    phone: z.string().trim().regex(PHONE_PATTERN, m.enterPhone),
+    email: z.union([z.literal(""), z.email(m.enterEmail)]).optional(),
+    note: z.string().trim().max(500).optional(),
+    locale: z.enum(["en", "my"]).default("en"),
+  });
 
 export async function createStaffBookingAction(
   slug: string,
-  input: z.input<typeof staffBookingSchema>,
+  input: z.input<ReturnType<typeof staffBookingSchema>>,
 ): Promise<ActionResult & { bookingId?: string }> {
-  const { business } = await requireBusiness(slug, "staff");
-  const parsed = staffBookingSchema.safeParse(input);
-  if (!parsed.success) return fieldErrors(parsed.error);
+  const [{ business }, { t }] = await Promise.all([requireBusiness(slug, "staff"), getSiteCopy()]);
+  const m = t.dash.msg;
+  const parsed = staffBookingSchema(m).safeParse(input);
+  if (!parsed.success) return fieldErrors(parsed.error, m.checkFields);
   const d = parsed.data;
   try {
     const booking = await createBooking({
@@ -108,7 +112,7 @@ export async function createStaffBookingAction(
     refresh();
     return { ok: true, bookingId: booking.id };
   } catch (err) {
-    if (err instanceof BookingError) return { ok: false, error: err.message };
+    if (err instanceof BookingError) return { ok: false, error: m.bookingErrors[err.code] ?? err.message, code: err.code };
     throw err;
   }
 }

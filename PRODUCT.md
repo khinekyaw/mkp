@@ -27,9 +27,9 @@ Global tools (Calendly, Cal.com, Calfrenzy) only let clinics pick colors by hand
 
 ## Capabilities and Constraints
 
-- Multi-tenant dashboard: calendar by doctor, appointments, customers, services, staff and hours, appearance (AI theming), share & embed, settings.
+- Multi-tenant dashboard: calendar (day by doctor, week, month), appointments, customers, services, staff and hours, appearance (AI theming), share & embed, settings.
 - Patient booking via embed (`embed.js`), hosted page (`/b/[slug]`), and a manage/cancel link.
-- English and Burmese for patients; dashboard is English for now.
+- English and Burmese for patients and for the whole product (site and dashboard), switchable at any time.
 - Payments are deferred (KBZPay/Wave/2C2P researched, not built).
 - The booking widget's look belongs to each clinic's brand; product branding never overrides it.
 
@@ -37,7 +37,7 @@ Global tools (Calendly, Cal.com, Calfrenzy) only let clinics pick colors by hand
 
 - Working name "Booking Widget" (not final).
 - Visual direction (Oct 10, 2026): a calm card-based look from a reference dashboard the user supplied: grey canvas, white rounded cards, sage green accents (see DESIGN.md). It replaced an earlier "Yangon clinic signboard" direction.
-- Our site (landing, sign-in/up, onboarding) is localized in English and Myanmar with a language switch; the dashboard is English for now.
+- Our site and dashboard are localized in English and Myanmar with a language switch in every header.
 
 ## Evidence on Hand
 

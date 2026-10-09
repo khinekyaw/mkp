@@ -7,13 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page";
 import { requireBusiness } from "@/lib/business/access";
 import { getCustomer } from "@/lib/dashboard/queries";
+import { getSiteCopy } from "@/lib/site-locale";
 import { CustomerForm } from "./customer-form";
 
-export const metadata: Metadata = { title: "Customer" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getSiteCopy();
+  return { title: t.dash.meta.customer };
+}
 
 export default async function CustomerPage({ params }: PageProps<"/dashboard/[biz]/customers/[customerId]">) {
   const { biz, customerId } = await params;
-  const { business } = await requireBusiness(biz);
+  const [{ business }, { t }] = await Promise.all([requireBusiness(biz), getSiteCopy()]);
+  const c = t.dash.customers;
   const data = await getCustomer(business.id, customerId);
   if (!data) notFound();
   const { customer, bookings } = data;
@@ -27,7 +32,7 @@ export default async function CustomerPage({ params }: PageProps<"/dashboard/[bi
   return (
     <>
       <Link href={`/dashboard/${business.slug}/customers`} className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" /> Customers
+        <ArrowLeft className="size-4" /> {c.title}
       </Link>
       <PageHeader
         title={customer.name}
@@ -39,9 +44,9 @@ export default async function CustomerPage({ params }: PageProps<"/dashboard/[bi
       />
       <div className="grid grid-cols-3 gap-3 sm:max-w-md">
         {[
-          ["Visits", stats.total],
-          ["No-shows", stats.noShows],
-          ["Cancelled", stats.cancelled],
+          [c.stats.visits, stats.total],
+          [c.stats.noShows, stats.noShows],
+          [c.stats.cancelled, stats.cancelled],
         ].map(([label, value]) => (
           <div key={label} className="rounded-lg bg-background p-4">
             <p className="text-xs text-muted-foreground">{label}</p>
@@ -52,13 +57,13 @@ export default async function CustomerPage({ params }: PageProps<"/dashboard/[bi
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle>Appointments</CardTitle>
+            <CardTitle>{c.appointments}</CardTitle>
           </CardHeader>
           <BookingList bookings={bookings} slug={business.slug} timezone={business.timezone} className="border-t" />
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Details & notes</CardTitle>
+            <CardTitle>{c.details}</CardTitle>
           </CardHeader>
           <CardContent>
             <CustomerForm slug={business.slug} customer={{ id: customer.id, name: customer.name, email: customer.email, notes: customer.notes }} />
