@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown, Cross, ExternalLink, Grip, LogOut, Plus } from "lucide-react";
+import { Check, ChevronDown, Cross, ExternalLink, Grip, LogOut, Plus, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSyncExternalStore } from "react";
@@ -92,15 +92,20 @@ export function TopNav({
         );
       })}
       {role !== "staff" ? (
-        // One click into the setup section, back to the page you last used
-        // there; the section's own sub-menu switches between its pages.
-        <Link
-          href={base + setupHref}
-          aria-current={setupActive ? "page" : undefined}
-          className={cn(tab, setupActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
-        >
-          {nav.setup}
-        </Link>
+        <>
+          {/* A divider and an icon set Setup apart from the daily tabs. */}
+          <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-border" />
+          {/* One click into the setup section, back to the page you last used
+              there; the section's own sub-menu switches between its pages. */}
+          <Link
+            href={base + setupHref}
+            aria-current={setupActive ? "page" : undefined}
+            className={cn(tab, "pl-3.5", setupActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
+          >
+            <SlidersHorizontal className="size-4" aria-hidden />
+            {nav.setup}
+          </Link>
+        </>
       ) : null}
     </nav>
   );
