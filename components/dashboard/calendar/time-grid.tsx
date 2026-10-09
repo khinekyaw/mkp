@@ -9,6 +9,7 @@ import { layoutLanes } from "@/lib/scheduling/lanes";
 import { minutesInZone } from "@/lib/scheduling/time";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { BookingDialog } from "../booking-dialog";
 import { STATUS_STYLE } from "../status-badge";
 
@@ -105,7 +106,7 @@ export function TimeGrid({
     <div className="grid gap-2">
       {cancelledCount ? (
         <label className="flex w-fit cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-          <input type="checkbox" checked={showCancelled} onChange={(e) => setShowCancelled(e.target.checked)} className="accent-foreground" />
+          <Checkbox checked={showCancelled} onChange={(e) => setShowCancelled(e.target.checked)} />
           {c.showCancelled(cancelledCount)}
         </label>
       ) : null}

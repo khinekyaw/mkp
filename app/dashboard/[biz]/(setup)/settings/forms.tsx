@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { useActionFeedback } from "@/components/dashboard/use-action-feedback";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/misc";
@@ -153,7 +154,7 @@ export function RulesSettings({ slug, settings }: { slug: string; settings: Busi
             ["my", t.dash.common.burmese],
           ].map(([v, label]) => (
             <label key={v} className="flex cursor-pointer items-center gap-2 text-sm">
-              <input type="checkbox" name="locales" value={v} defaultChecked={settings.locales.includes(v as "en" | "my")} className="accent-foreground" />
+              <Checkbox name="locales" value={v} defaultChecked={settings.locales.includes(v as "en" | "my")} />
               {label}
             </label>
           ))}
