@@ -33,10 +33,10 @@ export function ProfileSettings({ slug, values, bookingBase }: { slug: string; v
   const verticals = t.onboarding.verticals;
   return (
     <form action={action} className="grid gap-4">
-      <Field label={se.businessName} htmlFor="b-name" error={err("name")}>
+      <Field label={se.businessName} htmlFor="b-name" error={err("name")} required>
         <Input id="b-name" name="name" defaultValue={values.name} required />
       </Field>
-      <Field label={se.bookingLink} htmlFor="b-slug" error={err("slug")} hint={se.bookingLinkHint}>
+      <Field label={se.bookingLink} htmlFor="b-slug" error={err("slug")} hint={se.bookingLinkHint} required>
         <div className="flex items-center rounded-md border focus-within:ring-2 focus-within:ring-ring/15">
           <span className="truncate pl-3 text-sm text-muted-foreground">{bookingBase.replace(/^https?:\/\//, "")}</span>
           <input id="b-slug" name="slug" defaultValue={values.slug} required className="h-10 min-w-0 flex-1 bg-transparent pr-3 text-sm outline-none" />

@@ -46,7 +46,7 @@ function ServiceForm({
     <form action={action} className="grid gap-4">
       {service ? <input type="hidden" name="id" value={service.id} /> : null}
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label={t.dash.common.name} htmlFor="s-name" error={err("name")}>
+        <Field label={t.dash.common.name} htmlFor="s-name" error={err("name")} required>
           <Input id="s-name" name="name" defaultValue={service?.name} required autoFocus />
         </Field>
         <Field label={v.nameMy} htmlFor="s-name-my">
@@ -57,7 +57,7 @@ function ServiceForm({
         <Textarea id="s-desc" name="description" rows={2} defaultValue={service?.description ?? ""} />
       </Field>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Field label={v.duration} htmlFor="s-dur" error={err("durationMin")}>
+        <Field label={v.duration} htmlFor="s-dur" error={err("durationMin")} required>
           <Input id="s-dur" name="durationMin" type="number" min={5} max={600} step={5} defaultValue={service?.durationMin ?? 30} required />
         </Field>
         <Field label={v.buffer} htmlFor="s-buf" error={err("bufferMin")}>

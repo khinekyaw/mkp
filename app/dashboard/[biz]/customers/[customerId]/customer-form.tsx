@@ -18,7 +18,7 @@ export function CustomerForm({ slug, customer }: { slug: string; customer: Custo
   const c = t.dash.customers;
   return (
     <form action={action} className="grid gap-3">
-      <Field label={t.dash.common.name} htmlFor="c-name" error={state?.fields?.name?.[0]}>
+      <Field label={t.dash.common.name} htmlFor="c-name" error={state?.fields?.name?.[0]} required>
         <Input id="c-name" name="name" defaultValue={customer.name} required />
       </Field>
       <Field label={t.dash.common.email} htmlFor="c-email" error={state?.fields?.email?.[0]}>

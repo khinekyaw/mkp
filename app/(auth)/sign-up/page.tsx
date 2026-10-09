@@ -46,13 +46,13 @@ export default function SignUpPage() {
       }
     >
       <form onSubmit={onSubmit} className="grid gap-4">
-        <Field label={t.auth.signUp.name} htmlFor="name">
+        <Field label={t.auth.signUp.name} htmlFor="name" required>
           <Input id="name" name="name" autoComplete="name" required minLength={2} autoFocus />
         </Field>
-        <Field label={t.auth.email} htmlFor="email">
+        <Field label={t.auth.email} htmlFor="email" required>
           <Input id="email" name="email" type="email" autoComplete="email" required />
         </Field>
-        <Field label={t.auth.password} htmlFor="password" hint={t.auth.passwordHint}>
+        <Field label={t.auth.password} htmlFor="password" hint={t.auth.passwordHint} required>
           <Input id="password" name="password" type="password" autoComplete="new-password" required minLength={8} />
         </Field>
         {error ? <p className="text-sm text-red-600">{error}</p> : null}

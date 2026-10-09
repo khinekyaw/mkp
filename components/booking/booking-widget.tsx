@@ -371,10 +371,10 @@ export function BookingWidget({
           </div>
 
           <h3 className="text-sm font-medium">{t.details}</h3>
-          <Field label={t.name} htmlFor="bw-name" error={fieldErrors.name?.[0]}>
+          <Field label={t.name} htmlFor="bw-name" error={fieldErrors.name?.[0]} required>
             <Input id="bw-name" name="name" autoComplete="name" required aria-invalid={!!fieldErrors.name} />
           </Field>
-          <Field label={t.phone} htmlFor="bw-phone" error={fieldErrors.phone?.[0]}>
+          <Field label={t.phone} htmlFor="bw-phone" error={fieldErrors.phone?.[0]} required>
             <Input
               id="bw-phone"
               name="phone"

@@ -25,7 +25,7 @@ export function ProfileForm({ slug, provider, services }: { slug: string; provid
     <form action={action} className="grid gap-4">
       <input type="hidden" name="id" value={provider.id} />
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label={t.dash.common.name} htmlFor="p-name" error={state?.fields?.name?.[0]}>
+        <Field label={t.dash.common.name} htmlFor="p-name" error={state?.fields?.name?.[0]} required>
           <Input id="p-name" name="name" defaultValue={provider.name} required />
         </Field>
         <Field label={st.jobTitle} htmlFor="p-title">

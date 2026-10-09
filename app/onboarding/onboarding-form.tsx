@@ -75,7 +75,7 @@ export function OnboardingForm({ userName }: { userName: string }) {
           </p>
         </div>
         <form action={action} className="grid gap-4">
-          <Field label={t.onboarding.businessName} htmlFor="name" error={err("name")}>
+          <Field label={t.onboarding.businessName} htmlFor="name" error={err("name")} required>
             <Input
               id="name"
               name="name"

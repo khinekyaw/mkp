@@ -24,7 +24,7 @@ export function AddStaffDialog({ slug, services }: { slug: string; services: { i
       <DialogContent title={st.addTitle} description={st.addDescription}>
         <form action={action} className="grid gap-4">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label={t.dash.common.name} htmlFor="p-name" error={state?.fields?.name?.[0]}>
+            <Field label={t.dash.common.name} htmlFor="p-name" error={state?.fields?.name?.[0]} required>
               <Input id="p-name" name="name" placeholder={st.namePlaceholder} required autoFocus />
             </Field>
             <Field label={st.jobTitleOptional} htmlFor="p-title">

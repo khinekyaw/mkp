@@ -41,10 +41,10 @@ function SignInForm() {
 
   return (
     <form onSubmit={onSubmit} className="grid gap-4">
-      <Field label={t.auth.email} htmlFor="email">
+      <Field label={t.auth.email} htmlFor="email" required>
         <Input id="email" name="email" type="email" autoComplete="email" required autoFocus />
       </Field>
-      <Field label={t.auth.password} htmlFor="password" hint={<TextLink href="/forgot-password">{t.auth.signIn.forgot}</TextLink>}>
+      <Field label={t.auth.password} htmlFor="password" hint={<TextLink href="/forgot-password">{t.auth.signIn.forgot}</TextLink>} required>
         <Input id="password" name="password" type="password" autoComplete="current-password" required />
       </Field>
       {error ? <p className="text-sm text-red-600">{error}</p> : null}

@@ -37,7 +37,7 @@ function ResetForm() {
   if (!token) return <p className="text-sm">{t.auth.invalidLink}</p>;
   return (
     <form onSubmit={onSubmit} className="grid gap-4">
-      <Field label={t.auth.reset.newPassword} htmlFor="password" hint={t.auth.passwordHint}>
+      <Field label={t.auth.reset.newPassword} htmlFor="password" hint={t.auth.passwordHint} required>
         <Input id="password" name="password" type="password" autoComplete="new-password" required minLength={8} autoFocus />
       </Field>
       {error ? <p className="text-sm text-red-600">{error}</p> : null}

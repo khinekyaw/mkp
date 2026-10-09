@@ -134,12 +134,17 @@ export function NewBookingDialog({
                 </Select>
               </Field>
             </div>
-            <Field label={b.date} htmlFor="nb-date">
+            <Field label={b.date} htmlFor="nb-date" required>
               <Input id="nb-date" type="date" value={date} onChange={(e) => choose(setDate)(e.target.value)} required />
             </Field>
 
             <div className="grid gap-1.5">
-              <p className="text-xs font-medium text-muted-foreground">{b.time}</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                {b.time}
+                <span aria-hidden className="ml-0.5 text-red-600">
+                  *
+                </span>
+              </p>
               {!slots ? (
                 <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
                   {Array.from({ length: 10 }, (_, i) => (
@@ -173,10 +178,10 @@ export function NewBookingDialog({
             </div>
 
             <div className="grid gap-3 border-t pt-4 sm:grid-cols-2">
-              <Field label={b.patientName} htmlFor="nb-name" error={fields.name?.[0]}>
+              <Field label={b.patientName} htmlFor="nb-name" error={fields.name?.[0]} required>
                 <Input id="nb-name" name="name" required />
               </Field>
-              <Field label={t.dash.common.phone} htmlFor="nb-phone" error={fields.phone?.[0]}>
+              <Field label={t.dash.common.phone} htmlFor="nb-phone" error={fields.phone?.[0]} required>
                 <Input id="nb-phone" name="phone" type="tel" placeholder="09 123 456 789" required />
               </Field>
               <Field label={b.emailOptional} htmlFor="nb-email" error={fields.email?.[0]}>

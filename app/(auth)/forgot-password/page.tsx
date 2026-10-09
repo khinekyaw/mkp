@@ -32,7 +32,7 @@ export default function ForgotPasswordPage() {
         <p className="text-sm">{t.auth.forgot.sent}</p>
       ) : (
         <form onSubmit={onSubmit} className="grid gap-4">
-          <Field label={t.auth.email} htmlFor="email">
+          <Field label={t.auth.email} htmlFor="email" required>
             <Input id="email" name="email" type="email" autoComplete="email" required autoFocus />
           </Field>
           <Button type="submit" disabled={pending}>

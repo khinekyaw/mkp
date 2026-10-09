@@ -97,21 +97,21 @@ export function TimeOffManager({
         </label>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="grid grid-cols-[1fr_auto] gap-2">
-            <Field label={o.from} htmlFor={`to-start-${providerId ?? "biz"}`} error={err("startDate")}>
+            <Field label={o.from} htmlFor={`to-start-${providerId ?? "biz"}`} error={err("startDate")} required>
               <Input id={`to-start-${providerId ?? "biz"}`} name="startDate" type="date" min={today} defaultValue={today} required />
             </Field>
             {!allDay ? (
-              <Field label={o.time} htmlFor={`to-st-${providerId ?? "biz"}`} error={err("startTime")}>
+              <Field label={o.time} htmlFor={`to-st-${providerId ?? "biz"}`} error={err("startTime")} required>
                 <Input id={`to-st-${providerId ?? "biz"}`} name="startTime" type="time" defaultValue="12:00" required />
               </Field>
             ) : null}
           </div>
           <div className="grid grid-cols-[1fr_auto] gap-2">
-            <Field label={o.until} htmlFor={`to-end-${providerId ?? "biz"}`} error={err("endDate")}>
+            <Field label={o.until} htmlFor={`to-end-${providerId ?? "biz"}`} error={err("endDate")} required>
               <Input id={`to-end-${providerId ?? "biz"}`} name="endDate" type="date" min={today} defaultValue={today} required />
             </Field>
             {!allDay ? (
-              <Field label={o.time} htmlFor={`to-et-${providerId ?? "biz"}`}>
+              <Field label={o.time} htmlFor={`to-et-${providerId ?? "biz"}`} required>
                 <Input id={`to-et-${providerId ?? "biz"}`} name="endTime" type="time" defaultValue="13:00" required />
               </Field>
             ) : null}
