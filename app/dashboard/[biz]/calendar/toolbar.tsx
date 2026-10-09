@@ -100,8 +100,8 @@ export function CalendarToolbar({
               href={href({ view: v })}
               aria-current={v === view ? "page" : undefined}
               className={cn(
-                "rounded-full px-3.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground",
-                v === view && "bg-primary font-medium text-primary-foreground hover:text-primary-foreground",
+                "rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
+                v === view && "bg-primary text-primary-foreground hover:text-primary-foreground",
               )}
             >
               {c.views[v]}

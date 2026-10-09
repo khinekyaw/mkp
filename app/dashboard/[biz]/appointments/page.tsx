@@ -62,8 +62,8 @@ export default async function AppointmentsPage({ params, searchParams }: PagePro
               href={`?${new URLSearchParams({ filter: f, ...(q ? { q } : {}) })}`}
               aria-current={f === filter ? "page" : undefined}
               className={cn(
-                "rounded-full px-4 py-1.5 text-sm text-muted-foreground hover:text-foreground",
-                f === filter && "bg-primary font-medium text-primary-foreground hover:text-primary-foreground",
+                "rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground",
+                f === filter && "bg-primary text-primary-foreground hover:text-primary-foreground",
               )}
             >
               {a.filters[f]}

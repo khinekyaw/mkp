@@ -49,7 +49,8 @@ const SETUP = [
   { href: "/settings", key: "settings", icon: Settings },
 ] as const;
 
-const tab = "inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-4 text-sm whitespace-nowrap transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
+// Same weight active or not: a bolder active tab would widen and shift the centered bar.
+const tab = "inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-4 text-sm font-medium whitespace-nowrap transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
 const roundButton =
   "grid size-10 shrink-0 cursor-pointer place-items-center rounded-full bg-muted text-foreground transition-colors hover:bg-border outline-none focus-visible:ring-2 focus-visible:ring-primary/40 [&_svg]:size-4";
 
@@ -82,7 +83,7 @@ export function TopNav({
             key={item.href}
             href={base + item.href}
             aria-current={active ? "page" : undefined}
-            className={cn(tab, active ? "bg-primary font-medium text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
+            className={cn(tab, active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
           >
             {nav[item.key]}
           </Link>
@@ -91,9 +92,10 @@ export function TopNav({
       {role !== "staff" ? (
         <DropdownMenu>
           <DropdownMenuTrigger
-            className={cn(tab, setupActive ? "bg-primary font-medium text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
+            className={cn(tab, setupActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
           >
-            {setupActive ? nav[setupActive.key] : nav.setup}
+            {/* Always "Setup" so the bar keeps its width; the menu marks the current page. */}
+            {nav.setup}
             <ChevronDown className="size-3.5 opacity-70" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
