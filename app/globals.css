@@ -174,3 +174,13 @@
 :lang(my) :is(h1, h2, h3, h4) {
   line-height: 1.55;
 }
+
+/*
+ * Radix menus and dialogs lock page scroll and add a right margin the width of
+ * the scrollbar to stop the layout jumping. With `scrollbar-gutter: stable`
+ * that space is already reserved, so the extra margin shoved the page left.
+ * Unlayered and more specific than the injected rule, so it wins.
+ */
+html body[data-scroll-locked] {
+  margin-right: 0 !important;
+}
