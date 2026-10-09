@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useSiteCopy } from "@/components/i18n/site-locale";
 import type { BookingRow } from "@/lib/dashboard/queries";
 import { fmtClock, fmtTime } from "@/lib/format";
@@ -45,6 +45,30 @@ function NowLine({ timezone, gridStart, gridEnd }: { timezone: string; gridStart
   );
 }
 
+/** Smallest height worth scrolling inside; below it the page scrolls instead. */
+const MIN_HEIGHT = 360;
+
+/**
+ * Caps the scroll box at the space left in the window, so the page itself never
+ * scrolls and there is only one scrollbar (like Google Calendar).
+ */
+function useFitToViewport(ref: RefObject<HTMLDivElement | null>, deps: unknown[]) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      el.style.maxHeight = "";
+      const rest = document.documentElement.scrollHeight - el.offsetHeight;
+      // -1px absorbs sub-pixel rounding so the page can't overflow by a hair.
+      el.style.maxHeight = `${Math.max(MIN_HEIGHT, Math.floor(window.innerHeight - rest) - 1)}px`;
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refit when the grid's content changes
+  }, deps);
+}
+
 /**
  * Time-of-day grid shared by the day view (a column per doctor) and the week
  * view (a column per date). Outside working hours is shaded; overlapping
@@ -70,6 +94,8 @@ export function TimeGrid({
   const c = t.dash.calendar;
   const [selected, setSelected] = useState<BookingRow | null>(null);
   const [showCancelled, setShowCancelled] = useState(false);
+  const scroller = useRef<HTMLDivElement>(null);
+  useFitToViewport(scroller, [columns, gridStart, gridEnd, showCancelled]);
   const height = (gridEnd - gridStart) * PX_PER_MIN;
   const hours = Array.from({ length: (gridEnd - gridStart) / 60 + 1 }, (_, i) => gridStart + i * 60);
   const cancelledCount = columns.reduce((n, col) => n + col.bookings.filter((b) => b.status === "cancelled").length, 0);
@@ -83,7 +109,7 @@ export function TimeGrid({
           {c.showCancelled(cancelledCount)}
         </label>
       ) : null}
-      <div className="max-h-[calc(100dvh-14rem)] min-h-96 overflow-auto rounded-lg bg-background [scrollbar-width:thin]">
+      <div ref={scroller} className="overflow-auto overscroll-contain rounded-lg bg-background [scrollbar-width:thin]">
         <div className="grid min-w-fit" style={{ gridTemplateColumns: `3.5rem repeat(${columns.length}, minmax(${minCol}, 1fr))` }}>
           {/* Header row, pinned while scrolling through the day. */}
           <div className="sticky top-0 left-0 z-30 border-b bg-background" />
