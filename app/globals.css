@@ -92,6 +92,12 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
+  /* The reserved scrollbar gutter shows the root background, so on our grey
+     canvas pages paint the root grey too (clinic pages keep their own). */
+  html:has(.bg-canvas),
+  html:has(.bg-canvas) body {
+    background-color: var(--canvas);
+  }
   ::selection {
     /* ThemeScope remaps these so clinic-branded pages select in their own color. */
     background: var(--selection, var(--sage-soft));
