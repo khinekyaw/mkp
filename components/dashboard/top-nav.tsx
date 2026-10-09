@@ -1,22 +1,9 @@
 "use client";
 
-import {
-  Check,
-  ChevronDown,
-  Clock,
-  Cross,
-  ExternalLink,
-  Grip,
-  LogOut,
-  Palette,
-  Plus,
-  Settings,
-  Share2,
-  Tag,
-  UserRound,
-} from "lucide-react";
+import { Check, ChevronDown, Cross, ExternalLink, Grip, LogOut, Plus } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useSyncExternalStore } from "react";
 import { floatingBar } from "@/components/brand/styles";
 import {
   DropdownMenu,
@@ -31,22 +18,30 @@ import { signOut } from "@/lib/auth-client";
 import type { MemberRole } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
+import { lastSetupKey, SETUP_PAGES } from "./setup-pages";
 
 type Biz = { slug: string; name: string };
+
+const subscribeToStorage = (onChange: () => void) => {
+  window.addEventListener("storage", onChange);
+  return () => window.removeEventListener("storage", onChange);
+};
+
+function readLastSetup(slug: string): string {
+  try {
+    const last = localStorage.getItem(lastSetupKey(slug));
+    if (last && SETUP_PAGES.some((p) => p.href === last)) return last;
+  } catch {
+    // Storage unavailable (private mode): fall through to Services.
+  }
+  return SETUP_PAGES[0].href;
+}
 
 const NAV = [
   { href: "", key: "overview" },
   { href: "/calendar", key: "calendar" },
   { href: "/appointments", key: "appointments" },
   { href: "/customers", key: "customers" },
-] as const;
-const SETUP = [
-  { href: "/services", key: "services", icon: Tag },
-  { href: "/staff", key: "staff", icon: UserRound },
-  { href: "/hours", key: "hours", icon: Clock },
-  { href: "/appearance", key: "appearance", icon: Palette },
-  { href: "/share", key: "share", icon: Share2 },
-  { href: "/settings", key: "settings", icon: Settings },
 ] as const;
 
 // Same weight active or not: a bolder active tab would widen and shift the centered bar.
@@ -72,7 +67,14 @@ export function TopNav({
   const nav = t.dash.nav;
   const base = `/dashboard/${business.slug}`;
   const isActive = (href: string) => (href === "" ? pathname === base : pathname.startsWith(base + href));
-  const setupActive = SETUP.find((s) => isActive(s.href));
+  const setupActive = SETUP_PAGES.find((s) => isActive(s.href));
+  // Where the Setup tab leads: the last setup page used here (Services on the
+  // server and the first visit). Re-read on every render, i.e. each navigation.
+  const setupHref = useSyncExternalStore(
+    subscribeToStorage,
+    () => readLastSetup(business.slug),
+    () => SETUP_PAGES[0].href,
+  );
 
   const tabs = (
     <nav aria-label={nav.dashboard} className="flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-full bg-muted p-1 scrollbar-none">
@@ -90,23 +92,15 @@ export function TopNav({
         );
       })}
       {role !== "staff" ? (
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            className={cn(tab, setupActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
-          >
-            {/* Always "Setup" so the bar keeps its width; the menu marks the current page. */}
-            {nav.setup}
-            <ChevronDown className="size-3.5 opacity-70" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            {SETUP.map((s) => (
-              <DropdownMenuItem key={s.href} onSelect={() => router.push(base + s.href)}>
-                <s.icon /> <span className="flex-1">{nav[s.key]}</span>
-                {setupActive?.href === s.href ? <Check /> : null}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        // One click into the setup section, back to the page you last used
+        // there; the section's own sub-menu switches between its pages.
+        <Link
+          href={base + setupHref}
+          aria-current={setupActive ? "page" : undefined}
+          className={cn(tab, setupActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
+        >
+          {nav.setup}
+        </Link>
       ) : null}
     </nav>
   );
