@@ -1,0 +1,177 @@
+"use client";
+
+import { Clock, Plus, Tag, Trash2 } from "lucide-react";
+import { useActionState, useCallback, useState, useTransition } from "react";
+import { useActionFeedback } from "@/components/dashboard/use-action-feedback";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Field } from "@/components/ui/field";
+import { Input, Textarea } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/misc";
+import { EmptyState } from "@/components/ui/page";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "@/components/ui/toaster";
+import { deleteServiceAction, saveServiceAction } from "@/lib/dashboard/actions/catalog";
+import type { Service } from "@/lib/db/schema";
+import { fmtMinutes, fmtMoney } from "@/lib/format";
+
+type ServiceRow = Service & { providerIds: string[] };
+type ProviderOption = { id: string; name: string };
+
+function ServiceForm({
+  slug,
+  service,
+  providers,
+  onDone,
+}: {
+  slug: string;
+  service: ServiceRow | null;
+  providers: ProviderOption[];
+  onDone: () => void;
+}) {
+  const [state, action, pending] = useActionState(saveServiceAction.bind(null, slug), null);
+  const [deleting, startDelete] = useTransition();
+  useActionFeedback(state, onDone);
+  const err = (k: string) => state?.fields?.[k]?.[0];
+  // New services default to everyone so they're bookable immediately.
+  const assigned = new Set(service ? service.providerIds : providers.map((p) => p.id));
+
+  return (
+    <form action={action} className="grid gap-4">
+      {service ? <input type="hidden" name="id" value={service.id} /> : null}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Name" htmlFor="s-name" error={err("name")}>
+          <Input id="s-name" name="name" defaultValue={service?.name} required autoFocus />
+        </Field>
+        <Field label="Name in Burmese (optional)" htmlFor="s-name-my">
+          <Input id="s-name-my" name="nameMy" defaultValue={service?.nameMy ?? ""} lang="my" />
+        </Field>
+      </div>
+      <Field label="Description (optional)" htmlFor="s-desc">
+        <Textarea id="s-desc" name="description" rows={2} defaultValue={service?.description ?? ""} />
+      </Field>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Field label="Duration (min)" htmlFor="s-dur" error={err("durationMin")}>
+          <Input id="s-dur" name="durationMin" type="number" min={5} max={600} step={5} defaultValue={service?.durationMin ?? 30} required />
+        </Field>
+        <Field label="Buffer after (min)" htmlFor="s-buf" error={err("bufferMin")}>
+          <Input id="s-buf" name="bufferMin" type="number" min={0} max={240} step={5} defaultValue={service?.bufferMin ?? 0} />
+        </Field>
+        <Field label="Price (optional)" htmlFor="s-price" error={err("price")}>
+          <Input id="s-price" name="price" inputMode="numeric" defaultValue={service?.price ?? ""} placeholder="15000" />
+        </Field>
+        <Field label="Currency" htmlFor="s-cur" error={err("currency")}>
+          <Input id="s-cur" name="currency" defaultValue={service?.currency ?? "MMK"} maxLength={3} className="uppercase" />
+        </Field>
+      </div>
+
+      <fieldset className="grid gap-2">
+        <legend className="mb-1.5 text-xs font-medium text-muted-foreground">Provided by</legend>
+        {providers.length ? (
+          <div className="grid gap-1.5 sm:grid-cols-2">
+            {providers.map((p) => (
+              <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted/50">
+                <input type="checkbox" name="providerIds" value={p.id} defaultChecked={assigned.has(p.id)} className="accent-foreground" />
+                {p.name}
+              </label>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Add staff first so this service can be booked.</p>
+        )}
+      </fieldset>
+
+      <label className="flex items-center justify-between gap-3 rounded-md border px-3 py-2.5">
+        <span className="grid">
+          <span className="text-sm font-medium">Bookable online</span>
+          <span className="text-xs text-muted-foreground">Hidden services stay on past appointments.</span>
+        </span>
+        <Switch name="active" defaultChecked={service?.active ?? true} />
+      </label>
+
+      {state?.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="submit" disabled={pending}>
+          {pending ? <Spinner /> : null} {service ? "Save changes" : "Add service"}
+        </Button>
+        {service ? (
+          <Button
+            variant="ghost"
+            className="ml-auto text-red-600"
+            disabled={deleting}
+            onClick={() =>
+              startDelete(async () => {
+                if (!confirm(`Delete "${service.name}"?`)) return;
+                const res = await deleteServiceAction(slug, service.id);
+                if (res?.message) toast.success(res.message);
+                onDone();
+              })
+            }
+          >
+            <Trash2 /> Delete
+          </Button>
+        ) : null}
+      </div>
+    </form>
+  );
+}
+
+export function ServicesManager({ slug, services, providers }: { slug: string; services: ServiceRow[]; providers: ProviderOption[] }) {
+  const [editing, setEditing] = useState<ServiceRow | "new" | null>(null);
+  const close = useCallback(() => setEditing(null), []);
+  const name = (id: string) => providers.find((p) => p.id === id)?.name;
+
+  return (
+    <>
+      <div className="flex justify-end">
+        <Button onClick={() => setEditing("new")}>
+          <Plus /> New service
+        </Button>
+      </div>
+      {services.length ? (
+        <ul className="divide-y overflow-hidden rounded-lg bg-background px-1.5">
+          {services.map((s) => {
+            const staff = s.providerIds.map(name).filter(Boolean);
+            return (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  onClick={() => setEditing(s)}
+                  className="flex w-full cursor-pointer flex-wrap items-center gap-x-4 gap-y-1 rounded-md px-3 py-3 text-left hover:bg-muted/60"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-sm font-medium">{s.name}</span>
+                      {!s.active ? <Badge variant="muted">Hidden</Badge> : null}
+                      {s.active && !staff.length ? <Badge variant="outline">No staff</Badge> : null}
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {s.nameMy ? `${s.nameMy} · ` : ""}
+                      {staff.length ? staff.join(", ") : "Not assigned"}
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="size-3.5" /> {fmtMinutes(s.durationMin)}
+                    {s.bufferMin ? ` + ${s.bufferMin}` : ""}
+                  </span>
+                  <span className="w-24 text-right text-sm tabular-nums">{s.price != null ? fmtMoney(s.price, s.currency) : "—"}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <EmptyState icon={<Tag />} title="No services yet" description="Add the appointments patients can book." />
+      )}
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && close()}>
+        {editing ? (
+          <DialogContent title={editing === "new" ? "New service" : "Edit service"} className="max-w-xl">
+            <ServiceForm slug={slug} service={editing === "new" ? null : editing} providers={providers} onDone={close} />
+          </DialogContent>
+        ) : null}
+      </Dialog>
+    </>
+  );
+}

@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens.
+ *
+ * Kit tokens (--background … --font) drive every UI primitive. ThemeScope
+ * overrides them per clinic, which is how the booking widget wears each
+ * clinic's brand; DEFAULT_THEME (lib/theme) is these same values in hex.
+ * App tokens (--canvas, --sage-*, --tone-*) are for our own surfaces only:
+ * never use them inside the booking widget.
+ *
+ * `@theme inline` keeps utilities pointing at the live variable, which is what
+ * makes scoped overrides work.
+ */
+:root {
+  /* Kit: warm white cards, near-black ink, sage green actions. */
+  --background: oklch(0.993 0.002 110);
+  --foreground: oklch(0.21 0.012 130);
+  --muted: oklch(0.962 0.004 110);
+  --muted-foreground: oklch(0.53 0.012 125);
+  --border: oklch(0.92 0.005 110);
+  --primary: oklch(0.55 0.085 132);
+  --primary-foreground: oklch(0.99 0.004 110);
+  --radius: 12px;
+  --font: var(--font-archivo), var(--font-myanmar), ui-sans-serif, system-ui, sans-serif;
+
+  /* App: the grey canvas cards sit on, accents and soft status tones. */
+  --canvas: oklch(0.925 0.005 110);
+  --ink-pill: oklch(0.24 0.03 140);
+  --sage-soft: oklch(0.87 0.045 125);
+  --sage-deep: oklch(0.42 0.07 135);
+
+  --tone-green: oklch(0.45 0.09 140);
+  --tone-green-soft: oklch(0.94 0.04 135);
+  --tone-amber: oklch(0.5 0.1 70);
+  --tone-amber-soft: oklch(0.95 0.06 88);
+  --tone-yellow: oklch(0.8 0.14 85);
+  --tone-red: oklch(0.52 0.16 28);
+  --tone-red-soft: oklch(0.955 0.03 25);
+  --tone-blue: oklch(0.48 0.1 245);
+  --tone-blue-soft: oklch(0.955 0.022 240);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-ring: var(--foreground);
+
+
+  --color-canvas: var(--canvas);
+  --color-ink-pill: var(--ink-pill);
+  --color-sage-soft: var(--sage-soft);
+  --color-sage-deep: var(--sage-deep);
+  --color-tone-green: var(--tone-green);
+  --color-tone-green-soft: var(--tone-green-soft);
+  --color-tone-amber: var(--tone-amber);
+  --color-tone-amber-soft: var(--tone-amber-soft);
+  --color-tone-yellow: var(--tone-yellow);
+  --color-tone-red: var(--tone-red);
+  --color-tone-red-soft: var(--tone-red-soft);
+  --color-tone-blue: var(--tone-blue);
+  --color-tone-blue-soft: var(--tone-blue-soft);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) * 1.5);
+
+  --font-sans: var(--font);
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    accent-color: var(--primary);
+    caret-color: var(--primary);
+    scrollbar-color: oklch(0.82 0.008 120) transparent;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  ::selection {
+    /* ThemeScope remaps these so clinic-branded pages select in their own color. */
+    background: var(--selection, var(--sage-soft));
+    color: var(--selection-ink, var(--foreground));
+  }
+  a {
+    text-underline-offset: 0.2em;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+}
+
+/* The "Booked" pill pressing in on a confirmed demo booking. */
+@keyframes stamp-press {
+  from {
+    opacity: 0;
+    transform: rotate(-4deg) scale(1.35);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-4deg) scale(1);
+  }
+}
+.animate-stamp {
+  animation: stamp-press 420ms var(--ease-out-expo) both;
+}
+
+/* Sage gradient field for feature cards (booking link, landing hero and CTA). */
+.sage-glow {
+  background:
+    radial-gradient(90% 70% at 85% 5%, oklch(0.8 0.07 125 / 0.9), transparent 60%),
+    radial-gradient(80% 60% at 5% 100%, oklch(0.36 0.06 140), transparent 70%),
+    oklch(0.56 0.075 132);
+}
+
+/* Hatched remainder of a dashboard progress bar ("still to come"). */
+.hatch {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--border) 0 2px,
+    transparent 2px 6px
+  );
+}
+
+/* Thin, unobtrusive horizontal scroller (date strip). */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/*
+ * Burmese stacks vowel signs and medials above and below each line, so it needs
+ * far more leading than Latin and no negative tracking. Unlayered on purpose:
+ * it beats the tight leading-* / tracking-* utilities on headings.
+ */
+:lang(my) {
+  line-height: 1.8;
+  letter-spacing: normal;
+}
+:lang(my) :is(h1, h2, h3, h4) {
+  line-height: 1.55;
+}
