@@ -27,8 +27,31 @@ function createDb(): Db {
   const dir = process.env.NEXT_PHASE === "phase-production-build" ? undefined : PGLITE_DIR;
   // PGlite creates its own folder but not missing parents (a fresh clone has no .data/).
   if (dir) mkdirSync(path.dirname(dir), { recursive: true });
+  const client = new PGlite(dir, { extensions: { pg_trgm } });
+  if (dir) closeOnShutdown(client);
   // Same query surface; typed as postgres-js so call sites stay driver-agnostic.
-  return drizzlePglite(new PGlite(dir, { extensions: { pg_trgm } }), { schema }) as unknown as Db;
+  return drizzlePglite(client, { schema }) as unknown as Db;
+}
+
+/**
+ * PGlite can't recover a data directory killed mid-write, so close it when the
+ * dev server is stopped (Ctrl+C). Next's own shutdown is async and exits after
+ * it, which gives the close time to finish.
+ */
+function closeOnShutdown(client: PGlite) {
+  const close = (signal: NodeJS.Signals) => {
+    // Inside `next dev`, Next's handler exits the process; in a plain script
+    // (db:seed…) nobody else will, since a listener disables Node's default exit.
+    const othersWillExit = process.listenerCount(signal) > 0;
+    void client
+      .close()
+      .catch(() => {})
+      .finally(() => {
+        if (!othersWillExit) process.exit(signal === "SIGINT" ? 130 : 143);
+      });
+  };
+  process.once("SIGINT", close);
+  process.once("SIGTERM", close);
 }
 
 // Cached on globalThis so dev hot reloads don't open a second connection/PGlite instance.
@@ -58,6 +81,10 @@ export function rawDb(): Db {
 export async function closeDb() {
   const real = g.__db as unknown as { $client?: { close?: () => Promise<void>; end?: () => Promise<void> } } | undefined;
   if (!real?.$client) return;
-  await (real.$client.close?.() ?? real.$client.end?.());
-  g.__db = undefined;
+  try {
+    await (real.$client.close?.() ?? real.$client.end?.());
+  } finally {
+    // Forget the instance even if closing failed (e.g. PGlite already aborted).
+    g.__db = undefined;
+  }
 }

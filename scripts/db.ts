@@ -9,7 +9,7 @@
  * Local PGlite allows one process at a time: stop `next dev` before running these
  * (`pnpm dev` runs db:setup for you).
  */
-import { rm } from "node:fs/promises";
+import { rename, rm } from "node:fs/promises";
 import path from "node:path";
 import { hashPassword } from "better-auth/crypto";
 import { count, eq } from "drizzle-orm";
@@ -38,6 +38,26 @@ async function migrate() {
   if (isPglite()) await migratePglite(rawDb() as never, { migrationsFolder });
   else await migratePostgres(rawDb(), { migrationsFolder });
   console.log("✓ migrations applied");
+}
+
+/**
+ * A local PGlite directory left by a killed process can fail to open at all
+ * (WASM "Aborted()"). For `pnpm dev`, move it aside and start fresh rather than
+ * crash; nothing is deleted. Real Postgres (DATABASE_URL) is never touched.
+ */
+async function migrateOrRecover() {
+  try {
+    await migrate();
+  } catch (err) {
+    const aborted = String((err as { cause?: unknown })?.cause ?? err).includes("Aborted");
+    if (!isPglite() || !aborted) throw err;
+    await closeDb().catch(() => {});
+    const aside = `${PGLITE_DIR}-broken-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+    await rename(PGLITE_DIR, aside);
+    console.warn(`! The local database couldn't be opened (usually after the dev server was killed mid-write).`);
+    console.warn(`  Moved it to ${path.relative(process.cwd(), aside)} and starting fresh with the demo clinic.`);
+    await migrate();
+  }
 }
 
 async function ensureDemoUser() {
@@ -222,7 +242,8 @@ async function main() {
     await rm(PGLITE_DIR, { recursive: true, force: true });
     console.log("✓ local database removed");
   }
-  await migrate();
+  if (cmd === "setup") await migrateOrRecover();
+  else await migrate();
   if (cmd === "seed") await seed();
   if (cmd === "setup" || cmd === "reset") {
     const [{ n }] = await db.select({ n: count() }).from(schema.business);

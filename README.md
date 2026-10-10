@@ -94,6 +94,8 @@ No database install is needed: without `DATABASE_URL`, the app uses **PGlite** (
 
 PGlite allows only one process at a time, so stop `pnpm dev` before running `db:*` scripts.
 
+PGlite can't recover a database killed mid-write. Stop the dev server with Ctrl+C (it closes the database cleanly); if a database is ever unreadable anyway, `pnpm dev` moves it to `.data/pglite-broken-*` and starts fresh with the demo clinic. For local data that must survive, point `DATABASE_URL` at a local Postgres.
+
 ### Environment
 
 Copy `.env.example` to `.env.local`. Everything is optional locally.
