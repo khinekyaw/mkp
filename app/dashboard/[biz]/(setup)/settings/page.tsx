@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page";
+import { SettingsStack } from "@/components/ui/settings";
 import { requireBusiness } from "@/lib/business/access";
 import { DELETE_GRACE_DAYS } from "@/lib/business/settings";
 import { getSiteCopy } from "@/lib/site-locale";
@@ -16,54 +16,28 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function SettingsPage({ params }: PageProps<"/dashboard/[biz]/settings">) {
   const { biz } = await params;
   const [{ business, role }, { t }] = await Promise.all([requireBusiness(biz, "admin"), getSiteCopy()]);
-  const se = t.dash.settings;
   return (
-    <>
-      <PageHeader title={se.title} />
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>{se.details}</CardTitle>
-            <CardDescription>{se.detailsBody}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ProfileSettings
-              slug={business.slug}
-              bookingBase={appUrl("/b/")}
-              values={{
-                name: business.name,
-                slug: business.slug,
-                vertical: business.settings.vertical,
-                timezone: business.timezone,
-                phone: business.phone ?? "",
-                email: business.email ?? "",
-                address: business.address ?? "",
-                website: business.website ?? "",
-              }}
-            />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{se.rules}</CardTitle>
-            <CardDescription>{se.rulesBody}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RulesSettings slug={business.slug} settings={business.settings} />
-          </CardContent>
-        </Card>
-        {role === "owner" ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>{t.dash.data.title}</CardTitle>
-              <CardDescription>{t.dash.data.body}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DataControls slug={business.slug} graceDays={DELETE_GRACE_DAYS} />
-            </CardContent>
-          </Card>
-        ) : null}
-      </div>
-    </>
+    <SettingsStack>
+      <PageHeader title={t.dash.settings.title} />
+      {/* Keyed on the saved values: React resets a form to its first defaults after an
+          action, so remount with the fresh ones once the save comes back. */}
+      <ProfileSettings
+        key={`${business.updatedAt.getTime()}`}
+        slug={business.slug}
+        bookingBase={appUrl("/b/")}
+        values={{
+          name: business.name,
+          slug: business.slug,
+          vertical: business.settings.vertical,
+          timezone: business.timezone,
+          phone: business.phone ?? "",
+          email: business.email ?? "",
+          address: business.address ?? "",
+          website: business.website ?? "",
+        }}
+      />
+      <RulesSettings key={JSON.stringify(business.settings)} slug={business.slug} settings={business.settings} />
+      {role === "owner" ? <DataControls slug={business.slug} graceDays={DELETE_GRACE_DAYS} /> : null}
+    </SettingsStack>
   );
 }

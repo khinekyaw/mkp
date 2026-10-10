@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState, useRef, useTransition } from "react";
+import { UserPlus } from "lucide-react";
+import { useActionState, useCallback, useState, useTransition } from "react";
 import { useActionFeedback } from "@/components/dashboard/use-action-feedback";
 import { useSiteCopy } from "@/components/i18n/site-locale";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/misc";
@@ -21,40 +23,51 @@ function report(res: ActionState, fallback: string) {
   } else toast.error(res?.error ?? fallback);
 }
 
-export function InviteForm({ slug, canInviteOwners }: { slug: string; canInviteOwners: boolean }) {
+/** "Invite someone" in the page header; the form opens in a dialog that closes on success. */
+export function InviteDialog({ slug, canInviteOwners }: { slug: string; canInviteOwners: boolean }) {
   const { t } = useSiteCopy();
   const tm = t.dash.team;
+  const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState(inviteMemberAction.bind(null, slug), null);
-  const formRef = useRef<HTMLFormElement>(null);
-  useActionFeedback(state, () => formRef.current?.reset());
+  const close = useCallback(() => setOpen(false), []);
+  useActionFeedback(state, close);
   const err = (k: string) => state?.fields?.[k]?.[0];
   const invitable = ROLES.filter((r) => r !== "owner" || canInviteOwners);
   return (
-    <form ref={formRef} action={action} className="grid gap-3">
-      <Field label={tm.email} htmlFor="inv-email" error={err("email")} required>
-        <Input id="inv-email" name="email" type="email" required autoComplete="off" />
-      </Field>
-      <Field label={tm.role} htmlFor="inv-role">
-        <Select id="inv-role" name="role" defaultValue="staff">
-          {invitable.map((r) => (
-            <option key={r} value={r}>
-              {t.dash.roles[r]}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      <dl className="grid gap-1 text-xs text-muted-foreground">
-        {invitable.map((r) => (
-          <div key={r}>
-            <dt className="inline font-medium text-foreground">{t.dash.roles[r]}:</dt> <dd className="inline">{tm.roleHelp[r]}</dd>
-          </div>
-        ))}
-      </dl>
-      {state?.error && !state.fields ? <p className="text-sm text-red-600">{state.error}</p> : null}
-      <Button type="submit" disabled={pending} className="w-fit">
-        {pending ? <Spinner /> : null} {tm.send}
-      </Button>
-    </form>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <UserPlus /> {tm.invite}
+        </Button>
+      </DialogTrigger>
+      <DialogContent title={tm.invite} description={tm.inviteBody}>
+        <form action={action} className="grid gap-4">
+          <Field label={tm.email} htmlFor="inv-email" error={err("email")} required>
+            <Input id="inv-email" name="email" type="email" required autoComplete="off" />
+          </Field>
+          <Field label={tm.role} htmlFor="inv-role">
+            <Select id="inv-role" name="role" defaultValue="staff">
+              {invitable.map((r) => (
+                <option key={r} value={r}>
+                  {t.dash.roles[r]}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <dl className="grid gap-1 text-xs text-muted-foreground">
+            {invitable.map((r) => (
+              <div key={r}>
+                <dt className="inline font-medium text-foreground">{t.dash.roles[r]}:</dt> <dd className="inline">{tm.roleHelp[r]}</dd>
+              </div>
+            ))}
+          </dl>
+          {state?.error && !state.fields ? <p className="text-sm text-red-600">{state.error}</p> : null}
+          <Button type="submit" disabled={pending}>
+            {pending ? <Spinner /> : null} {tm.send}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

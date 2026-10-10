@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TimeOffManager } from "@/components/dashboard/time-off-manager";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page";
+import { SettingsSection, SettingsStack } from "@/components/ui/settings";
 import { requireBusiness } from "@/lib/business/access";
 import { getBusinessHours, listProviders, listServices, listTimeOff } from "@/lib/dashboard/queries";
 import { dateInZone } from "@/lib/scheduling/time";
@@ -35,12 +35,9 @@ export default async function ProviderPage({ params }: PageProps<"/dashboard/[bi
         <ArrowLeft className="size-4" /> {st.title}
       </Link>
       <PageHeader title={provider.name} description={provider.title ?? undefined} />
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>{st.profile}</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <SettingsStack>
+        <SettingsSection title={st.profile}>
+          <div className="p-5">
             <ProfileForm
               slug={business.slug}
               provider={{
@@ -53,41 +50,31 @@ export default async function ProviderPage({ params }: PageProps<"/dashboard/[bi
               }}
               services={services.map((s) => ({ id: s.id, name: s.name, active: s.active }))}
             />
-          </CardContent>
-        </Card>
-        <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{st.workingHours}</CardTitle>
-              <CardDescription>{st.workingHoursBody}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ProviderHoursForm
-                slug={business.slug}
-                providerId={provider.id}
-                useBusinessHours={provider.useBusinessHours}
-                schedule={provider.useBusinessHours ? businessHours : provider.schedule}
-              />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>{st.timeOff}</CardTitle>
-              <CardDescription>{st.timeOffBody(provider.name)}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <TimeOffManager
-                slug={business.slug}
-                timezone={business.timezone}
-                entries={timeOff}
-                providerId={provider.id}
-                today={dateInZone(new Date(), business.timezone)}
-                emptyLabel={st.noTimeOff}
-              />
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+          </div>
+        </SettingsSection>
+        <SettingsSection title={st.workingHours} description={st.workingHoursBody}>
+          <div className="p-5">
+            <ProviderHoursForm
+              slug={business.slug}
+              providerId={provider.id}
+              useBusinessHours={provider.useBusinessHours}
+              schedule={provider.useBusinessHours ? businessHours : provider.schedule}
+            />
+          </div>
+        </SettingsSection>
+        <SettingsSection title={st.timeOff} description={st.timeOffBody(provider.name)}>
+          <div className="p-5">
+            <TimeOffManager
+              slug={business.slug}
+              timezone={business.timezone}
+              entries={timeOff}
+              providerId={provider.id}
+              today={dateInZone(new Date(), business.timezone)}
+              emptyLabel={st.noTimeOff}
+            />
+          </div>
+        </SettingsSection>
+      </SettingsStack>
     </>
   );
 }

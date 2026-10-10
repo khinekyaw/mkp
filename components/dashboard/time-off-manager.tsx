@@ -1,9 +1,10 @@
 "use client";
 
-import { CalendarOff, Trash2 } from "lucide-react";
+import { CalendarOff, Plus, Trash2 } from "lucide-react";
 import { useActionState, useCallback, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/misc";
@@ -15,7 +16,7 @@ import { useActionFeedback } from "./use-action-feedback";
 
 type Entry = { id: string; startsAt: Date; endsAt: Date; reason: string | null; providerName?: string | null };
 
-/** Lists upcoming absences/closures and adds new ones. providerId undefined = whole business. */
+/** Lists upcoming absences/closures; adding one opens a dialog. providerId undefined = whole business. */
 export function TimeOffManager({
   slug,
   timezone,
@@ -34,11 +35,11 @@ export function TimeOffManager({
   const { locale, t } = useSiteCopy();
   const o = t.dash.timeOff;
   const [allDay, setAllDay] = useState(true);
-  const [formKey, setFormKey] = useState(0);
+  const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState(addTimeOffAction.bind(null, slug), null);
   const [removing, startRemove] = useTransition();
-  const reset = useCallback(() => setFormKey((k) => k + 1), []);
-  useActionFeedback(state, reset);
+  const close = useCallback(() => setOpen(false), []);
+  useActionFeedback(state, close);
   const err = (k: string) => state?.fields?.[k]?.[0];
 
   const date = (d: Date) => fmtDate(d, timezone, undefined, locale);
@@ -90,42 +91,51 @@ export function TimeOffManager({
         <p className="text-sm text-muted-foreground">{emptyLabel}</p>
       )}
 
-      <form key={formKey} action={action} className="grid gap-3 rounded-md border p-3">
-        {providerId ? <input type="hidden" name="providerId" value={providerId} /> : null}
-        <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
-          <Checkbox name="allDay" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} />
-          {o.allDay}
-        </label>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="grid grid-cols-[1fr_auto] gap-2">
-            <Field label={o.from} htmlFor={`to-start-${providerId ?? "biz"}`} error={err("startDate")} required>
-              <Input id={`to-start-${providerId ?? "biz"}`} name="startDate" type="date" min={today} defaultValue={today} required />
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline" className="w-fit">
+            <Plus /> {providerId ? o.addTimeOff : o.addClosure}
+          </Button>
+        </DialogTrigger>
+        <DialogContent title={providerId ? o.addTimeOff : o.addClosure}>
+          <form action={action} className="grid gap-3">
+            {providerId ? <input type="hidden" name="providerId" value={providerId} /> : null}
+            <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
+              <Checkbox name="allDay" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} />
+              {o.allDay}
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-[1fr_auto] gap-2">
+                <Field label={o.from} htmlFor={`to-start-${providerId ?? "biz"}`} error={err("startDate")} required>
+                  <Input id={`to-start-${providerId ?? "biz"}`} name="startDate" type="date" min={today} defaultValue={today} required />
+                </Field>
+                {!allDay ? (
+                  <Field label={o.time} htmlFor={`to-st-${providerId ?? "biz"}`} error={err("startTime")} required>
+                    <Input id={`to-st-${providerId ?? "biz"}`} name="startTime" type="time" defaultValue="12:00" required />
+                  </Field>
+                ) : null}
+              </div>
+              <div className="grid grid-cols-[1fr_auto] gap-2">
+                <Field label={o.until} htmlFor={`to-end-${providerId ?? "biz"}`} error={err("endDate")} required>
+                  <Input id={`to-end-${providerId ?? "biz"}`} name="endDate" type="date" min={today} defaultValue={today} required />
+                </Field>
+                {!allDay ? (
+                  <Field label={o.time} htmlFor={`to-et-${providerId ?? "biz"}`} required>
+                    <Input id={`to-et-${providerId ?? "biz"}`} name="endTime" type="time" defaultValue="13:00" required />
+                  </Field>
+                ) : null}
+              </div>
+            </div>
+            <Field label={o.reason} htmlFor={`to-reason-${providerId ?? "biz"}`}>
+              <Input id={`to-reason-${providerId ?? "biz"}`} name="reason" placeholder={providerId ? o.reasonStaff : o.reasonClinic} />
             </Field>
-            {!allDay ? (
-              <Field label={o.time} htmlFor={`to-st-${providerId ?? "biz"}`} error={err("startTime")} required>
-                <Input id={`to-st-${providerId ?? "biz"}`} name="startTime" type="time" defaultValue="12:00" required />
-              </Field>
-            ) : null}
-          </div>
-          <div className="grid grid-cols-[1fr_auto] gap-2">
-            <Field label={o.until} htmlFor={`to-end-${providerId ?? "biz"}`} error={err("endDate")} required>
-              <Input id={`to-end-${providerId ?? "biz"}`} name="endDate" type="date" min={today} defaultValue={today} required />
-            </Field>
-            {!allDay ? (
-              <Field label={o.time} htmlFor={`to-et-${providerId ?? "biz"}`} required>
-                <Input id={`to-et-${providerId ?? "biz"}`} name="endTime" type="time" defaultValue="13:00" required />
-              </Field>
-            ) : null}
-          </div>
-        </div>
-        <Field label={o.reason} htmlFor={`to-reason-${providerId ?? "biz"}`}>
-          <Input id={`to-reason-${providerId ?? "biz"}`} name="reason" placeholder={providerId ? o.reasonStaff : o.reasonClinic} />
-        </Field>
-        {state?.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
-        <Button type="submit" variant="outline" disabled={pending} className="w-fit">
-          {pending ? <Spinner /> : null} {providerId ? o.addTimeOff : o.addClosure}
-        </Button>
-      </form>
+            {state?.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
+            <Button type="submit" disabled={pending}>
+              {pending ? <Spinner /> : null} {providerId ? o.addTimeOff : o.addClosure}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
