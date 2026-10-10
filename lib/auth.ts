@@ -6,7 +6,8 @@ import { admin, twoFactor } from "better-auth/plugins";
 import { soleOwnedBusinesses } from "./business/ownership";
 import { db, schema } from "./db";
 import { sendSafely } from "./notifications/mailer";
-import { passwordResetEmail, verifyEmailEmail } from "./notifications/templates";
+import { existingAccountEmail, passwordResetEmail, verifyEmailEmail } from "./notifications/templates";
+import { appUrl } from "./url";
 
 // `next build` evaluates modules without runtime secrets; never serves requests.
 const isBuild = process.env.NEXT_PHASE === "phase-production-build";
@@ -38,6 +39,12 @@ export const auth = betterAuth({
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, url }) => {
       await sendSafely(passwordResetEmail({ to: user.email, name: user.name, url }));
+    },
+    // Sign-up answers the same either way (no account probing), so tell the real owner by email.
+    onExistingUserSignUp: async ({ user }) => {
+      await sendSafely(
+        existingAccountEmail({ to: user.email, name: user.name, signInUrl: appUrl("/sign-in"), resetUrl: appUrl("/forgot-password") }),
+      );
     },
   },
   emailVerification: {

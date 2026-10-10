@@ -101,6 +101,9 @@ Product
 - [x] Account settings: name, email change (verified), password, 2FA, sign out other devices, delete account (blocked while sole owner)
 - [x] Facebook "Book now" guide on Share & embed; Zawgyi → Unicode for patient names and notes (Google's `myanmar-tools`)
 - [x] In-app support link (`NEXT_PUBLIC_SUPPORT_URL`, needs input)
+- [x] Patient dates, times and prices in spoken-style Burmese (Burmese digits, "မနက် ၉:၀၀", "၁၅,၀၀၀ ကျပ်")
+- [x] Signing up with an existing email sends a "You already have an account" email (no account probing, no dead end)
+- [x] Local dev: PGlite closes cleanly on Ctrl+C, and `pnpm dev` recovers from an unreadable database instead of crashing
 
 Super-admin (`/admin`)
 - [x] Better Auth `admin` plugin; 404 for non-admins; 2FA required in production; `pnpm admin:grant <email>` bootstraps the first admin

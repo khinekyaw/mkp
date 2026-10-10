@@ -65,7 +65,7 @@ export default async function ManagePage({ params, searchParams }: PageProps<"/m
               {time(booking.startsAt)} – {time(booking.endsAt)}
             </Row>
             {business.address ? (
-              <Row icon={<MapPin />} label="Address">
+              <Row icon={<MapPin />} label={t.address}>
                 {business.address}
               </Row>
             ) : null}
