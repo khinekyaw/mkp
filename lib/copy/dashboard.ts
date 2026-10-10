@@ -4,6 +4,7 @@
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 export const dashEn = {
+  suspended: "Your booking page is paused, so patients can't book online. Contact us to restore it.",
   nav: {
     overview: "Overview",
     calendar: "Calendar",
@@ -401,6 +402,7 @@ export const dashEn = {
 export type DashCopy = typeof dashEn;
 
 export const dashMy: DashCopy = {
+  suspended: "သင့်ဘိုကင်စာမျက်နှာကို ယာယီရပ်ထားသဖြင့် လူနာများ အွန်လိုင်းမှ ရက်ချိန်းယူ၍ မရပါ။ ပြန်ဖွင့်ရန် ကျွန်ုပ်တို့ထံ ဆက်သွယ်ပါ။",
   nav: {
     overview: "အကျဉ်းချုပ်",
     calendar: "ပြက္ခဒိန်",

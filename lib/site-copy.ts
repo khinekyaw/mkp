@@ -19,11 +19,14 @@ const en = {
   },
   footer: { madeFor: "Made for clinics in Myanmar", samplePage: "Sample booking page", signIn: "Sign in" },
   hero: {
-    title: "Clinic booking that looks like your own.",
+    eyebrow: "Simple. Branded. Yours.",
+    // The accent is set in green with a hand-drawn underline; before/after
+    // let each language put it where its word order needs it.
+    title: { before: "Clinic booking that looks like", accent: "your own.", after: "" },
     body: "Patients pick a doctor and a time from your website, booking page or Facebook link, in Burmese or English. The booking form wears your clinic's own colors and fonts, matched from your website automatically.",
     cta: "Create your booking page",
     seeMatch: "See it match your website",
-    note: "Free while in beta. No card needed.",
+    points: ["Free while in beta", "No card needed", "Set up in minutes"],
   },
   match: {
     title: "It dresses itself in your brand.",
@@ -113,12 +116,15 @@ const en = {
     email: "Email",
     password: "Password",
     passwordHint: "At least 8 characters.",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
     backToSignIn: "Back to sign in",
     invalidLink: "This link is invalid or expired.",
     signIn: {
       title: "Welcome back",
       forgot: "Forgot password?",
       wrong: "Wrong email or password.",
+      unverified: "Please confirm your email first. We've sent you a new link.",
       failed: "Couldn't sign in.",
       submit: "Sign in",
       newHere: "New here?",
@@ -131,6 +137,8 @@ const en = {
       failed: "Couldn't create your account.",
       submit: "Create account",
       haveAccount: "Already have an account?",
+      checkTitle: "Check your email",
+      checkBody: (email: string) => `We've sent a confirmation link to ${email}. Open it to finish setting up your clinic.`,
       signIn: "Sign in",
     },
     forgot: {
@@ -189,11 +197,12 @@ const my: SiteCopy = {
   },
   footer: { madeFor: "မြန်မာနိုင်ငံရှိ ဆေးခန်းများအတွက်", samplePage: "နမူနာ ဘိုကင်စာမျက်နှာ", signIn: "အကောင့်ဝင်ရန်" },
   hero: {
-    title: "သင့်ဆေးခန်းနှင့် လိုက်ဖက်သော အွန်လိုင်း ရက်ချိန်းယူစနစ်",
+    eyebrow: "ရိုးရှင်း။ သင့်ပုံစံ။ သင့်ကိုယ်ပိုင်။",
+    title: { before: "", accent: "သင့်ဆေးခန်းနှင့် လိုက်ဖက်သော", after: "အွန်လိုင်း ရက်ချိန်းယူစနစ်" },
     body: "လူနာများသည် သင့်ဝက်ဘ်ဆိုက်၊ ဘိုကင်စာမျက်နှာ သို့မဟုတ် Facebook လင့်ခ်မှ ဆရာဝန်နှင့် အချိန်ကို မြန်မာ သို့မဟုတ် အင်္ဂလိပ်ဘာသာဖြင့် ရွေးနိုင်ပါသည်။ ဘိုကင်ပုံစံသည် သင့်ဝက်ဘ်ဆိုက်မှ အရောင်နှင့် ဖောင့်များကို အလိုအလျောက်ယူ၍ သင့်ဆေးခန်းပုံစံအတိုင်း ပြသပါသည်။",
     cta: "ဘိုကင်စာမျက်နှာ ဖန်တီးရန်",
     seeMatch: "သင့်ဆိုက်နှင့် ကိုက်ညီပုံ ကြည့်ရန်",
-    note: "Beta ကာလအတွင်း အခမဲ့ဖြစ်ပြီး ကတ်မလိုပါ။",
+    points: ["Beta ကာလအတွင်း အခမဲ့", "ကတ်မလိုပါ", "မိနစ်ပိုင်းအတွင်း စတင်နိုင်"],
   },
   match: {
     title: "သင့်အမှတ်တံဆိပ်အတိုင်း အလိုအလျောက် ပြင်ဆင်ပေးသည်",
@@ -284,12 +293,15 @@ const my: SiteCopy = {
     email: "အီးမေးလ်",
     password: "စကားဝှက်",
     passwordHint: "အနည်းဆုံး စာလုံး ၈ လုံး။",
+    showPassword: "စကားဝှက် ပြရန်",
+    hidePassword: "စကားဝှက် ဖျောက်ရန်",
     backToSignIn: "အကောင့်ဝင်ရန် စာမျက်နှာသို့",
     invalidLink: "ဤလင့်ခ် မမှန်ကန်ပါ သို့မဟုတ် သက်တမ်းကုန်သွားပါပြီ။",
     signIn: {
       title: "ပြန်လည် ကြိုဆိုပါသည်",
       forgot: "စကားဝှက် မေ့နေပါသလား။",
       wrong: "အီးမေးလ် သို့မဟုတ် စကားဝှက် မှားနေပါသည်။",
+      unverified: "အီးမေးလ်ကို ဦးစွာ အတည်ပြုပေးပါ။ လင့်ခ်အသစ် ပို့ပေးလိုက်ပါပြီ။",
       failed: "အကောင့်ဝင်၍ မရပါ။",
       submit: "အကောင့်ဝင်ရန်",
       newHere: "အသစ်လား။",
@@ -302,6 +314,8 @@ const my: SiteCopy = {
       failed: "အကောင့် ဖွင့်၍ မရပါ။",
       submit: "အကောင့် ဖွင့်ရန်",
       haveAccount: "အကောင့် ရှိပြီးသားလား။",
+      checkTitle: "သင့်အီးမေးလ်ကို စစ်ကြည့်ပါ",
+      checkBody: (email: string) => `${email} သို့ အတည်ပြုလင့်ခ် ပို့ထားပါသည်။ ဆေးခန်း စတင်စီစဉ်ရန် ထိုလင့်ခ်ကို ဖွင့်ပါ။`,
       signIn: "အကောင့်ဝင်ရန်",
     },
     forgot: {

@@ -3,7 +3,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { db, schema } from "./db";
 import { sendSafely } from "./notifications/mailer";
-import { passwordResetEmail } from "./notifications/templates";
+import { passwordResetEmail, verifyEmailEmail } from "./notifications/templates";
 
 // `next build` evaluates modules without runtime secrets; never serves requests.
 const isBuild = process.env.NEXT_PHASE === "phase-production-build";
@@ -23,8 +23,21 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
+    // Team invites and notifications go by email, so an address must be proven before it gets a session.
+    requireEmailVerification: true,
+    revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, url }) => {
       await sendSafely(passwordResetEmail({ to: user.email, name: user.name, url }));
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    // An unverified sign-in attempt mails a fresh link, so expired links recover themselves.
+    sendOnSignIn: true,
+    autoSignInAfterVerification: true,
+    expiresIn: 60 * 60 * 24,
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendSafely(verifyEmailEmail({ to: user.email, name: user.name, url }));
     },
   },
   session: {

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import { buildTheme, isSystemFont, type Theme } from "@/lib/theme";
 import { useSiteCopy } from "@/components/i18n/site-locale";
 import { FontPicker } from "./font-picker";
@@ -82,15 +83,7 @@ export function ThemeEditor({
             <FontPicker id={ids.font} value={core.fontFamily} onChange={(fontFamily) => update({ fontFamily })} />
           </Field>
           <Field label={t.studio.corners(core.radius)} htmlFor={ids.radius}>
-            <input
-              id={ids.radius}
-              type="range"
-              min={0}
-              max={20}
-              value={core.radius}
-              onChange={(e) => update({ radius: Number(e.target.value) })}
-              className="h-10 w-full cursor-pointer accent-foreground"
-            />
+            <Slider id={ids.radius} min={0} max={20} value={core.radius} onChange={(e) => update({ radius: Number(e.target.value) })} />
           </Field>
         </div>
       </CardContent>

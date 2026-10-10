@@ -5,6 +5,7 @@ import { useActionState, useState, useTransition } from "react";
 import { useActionFeedback } from "@/components/dashboard/use-action-feedback";
 import { WeeklyHoursEditor } from "@/components/dashboard/weekly-hours-editor";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/misc";
@@ -40,8 +41,8 @@ export function ProfileForm({ slug, provider, services }: { slug: string; provid
         {services.length ? (
           <div className="grid gap-1.5 sm:grid-cols-2">
             {services.map((s) => (
-              <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted/50">
-                <input type="checkbox" name="serviceIds" value={s.id} defaultChecked={provider.serviceIds.includes(s.id)} className="accent-foreground" />
+              <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-muted/50 has-checked:border-primary/40 has-checked:bg-primary/5">
+                <Checkbox name="serviceIds" value={s.id} defaultChecked={provider.serviceIds.includes(s.id)} />
                 <span className={s.active ? "" : "text-muted-foreground"}>{s.name}</span>
               </label>
             ))}

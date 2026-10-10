@@ -136,6 +136,73 @@
     oklch(0.56 0.075 132);
 }
 
+/* Range slider (components/ui/slider.tsx): thin track filled in the primary
+   color up to --fill, round thumb ringed in primary. Kit colors only. */
+@layer components {
+  .slider {
+    appearance: none;
+    background: transparent;
+    outline: none;
+  }
+  .slider::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: linear-gradient(var(--primary), var(--primary)) 0 / var(--fill, 0%) 100% no-repeat, var(--border);
+  }
+  .slider::-moz-range-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--border);
+  }
+  .slider::-moz-range-progress {
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--primary);
+  }
+  .slider::-webkit-slider-thumb {
+    appearance: none;
+    margin-top: -6px;
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    border: 2px solid var(--primary);
+    background: var(--background);
+    box-shadow: 0 1px 3px oklch(0 0 0 / 0.15);
+    transition: transform 150ms, box-shadow 150ms;
+  }
+  .slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    border: 2px solid var(--primary);
+    background: var(--background);
+    box-shadow: 0 1px 3px oklch(0 0 0 / 0.15);
+    transition: transform 150ms, box-shadow 150ms;
+  }
+  .slider:active::-webkit-slider-thumb {
+    transform: scale(1.15);
+  }
+  .slider:active::-moz-range-thumb {
+    transform: scale(1.15);
+  }
+  .slider:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 25%, transparent);
+  }
+  .slider:focus-visible::-moz-range-thumb {
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 25%, transparent);
+  }
+}
+
+/* Hand-drawn underline for the landing headline's accent, in the primary
+   sage. Cloned per line box, so an accent that wraps gets one under each line. */
+.swoosh {
+  padding-bottom: 0.1em;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 20' preserveAspectRatio='none'%3E%3Cpath d='M4 15 C70 5 190 2 296 10' fill='none' stroke='%235f7c47' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E")
+    no-repeat 40% 100% / 92% 0.16em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
 /* Hatched remainder of a dashboard progress bar ("still to come"). */
 .hatch {
   background-image: repeating-linear-gradient(

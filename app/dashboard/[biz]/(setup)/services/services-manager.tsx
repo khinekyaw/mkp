@@ -5,6 +5,7 @@ import { useActionState, useCallback, useState, useTransition } from "react";
 import { useActionFeedback } from "@/components/dashboard/use-action-feedback";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
@@ -76,8 +77,8 @@ function ServiceForm({
         {providers.length ? (
           <div className="grid gap-1.5 sm:grid-cols-2">
             {providers.map((p) => (
-              <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted/50">
-                <input type="checkbox" name="providerIds" value={p.id} defaultChecked={assigned.has(p.id)} className="accent-foreground" />
+              <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-muted/50 has-checked:border-primary/40 has-checked:bg-primary/5">
+                <Checkbox name="providerIds" value={p.id} defaultChecked={assigned.has(p.id)} />
                 {p.name}
               </label>
             ))}

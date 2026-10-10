@@ -100,7 +100,7 @@ Everything we own is localized in English and Myanmar: landing, sign-in/up, pass
 
 ## Layout
 
-- **Site:** 72rem (`max-w-6xl`) column on the canvas under the floating header: hero (promise beside the booking demo on a sage-glow panel), the brand studio in one large white card, a features bento (sage-glow heading card plus white feature cards), a sage-glow closing card, a white footer strip.
+- **Site:** 72rem (`max-w-6xl`) column on the canvas under the floating header: hero (eyebrow, headline with a green accent phrase and hand-drawn `.swoosh` underline, CTAs, a three-point checklist; beside it the booking demo over organic sage blobs), the brand studio in one large white card, a features bento (sage-glow heading card plus white feature cards), a sage-glow closing card, a white footer strip.
 - **Auth and onboarding:** `SplitLayout` (`components/brand/split-layout.tsx`): sage-glow panel beside a white form card, both rounded 32px on the canvas, language switch top-right. On phones the panel is hidden and the logo sits above the form. Onboarding's panel is a live preview card of the clinic being created.
 - **Dashboard:** floating top bar over an 80rem (`max-w-7xl`) column of cards.
 
@@ -108,7 +108,7 @@ Everything we own is localized in English and Myanmar: landing, sign-in/up, pass
 
 Mostly flat: white on grey does the separating. Exceptions: the floating header (`floatingBar` in `components/brand/styles.ts`: frosted, a soft short shadow), dialogs and menus, and cards lifted off a sage-glow panel (demo and preview cards).
 
-**Sage glow** (`.sage-glow`) is the one gradient field: booking-link card, landing hero panel, features heading card, closing card and auth panels.
+**Sage glow** (`.sage-glow`) is the one gradient field: booking-link card, landing hero blob, features heading card, closing card and auth panels.
 
 ## Shapes
 
@@ -118,12 +118,13 @@ Controls 12px (`--radius`), cards 20px (`rounded-[1.25rem]`), large panels 32px,
 
 - **Header** (site and dashboard): logo mark (round sage, wordmark hidden on phones in the site header), pill tabs on `bg-muted`, round icon buttons. The dashboard's Setup tab is a plain link into the setup section, opening the last setup page used there (remembered per clinic in localStorage); the section's sub-menu (`components/dashboard/setup-nav.tsx`, a sticky list on desktop, scrolling pills on phones) switches between its pages in one click. Setup pages live in the `(setup)` route group, which adds that layout without changing URLs. Sticky content below it offsets by `top-24`.
 - **Forms** (`components/ui/field.tsx`): pass `required` to `Field` whenever its control is required; the label gets a red asterisk (hidden from screen readers, which read the control's own `required`). Optional fields keep "(optional)" in their label; selects that always hold a value need neither.
+- **Checkbox and Slider** (`components/ui/checkbox.tsx`, `components/ui/slider.tsx`): native inputs (they still post with forms) drawn in kit colors: a rounded box that fills primary with a white check; a thin track filled primary up to a white thumb ringed in primary (`.slider` in `globals.css`). Never use a bare `<input type="checkbox">` or `type="range"`. Option cards holding a checkbox tint with `has-checked:border-primary/40 has-checked:bg-primary/5`.
 - **Lists** (`components/ui/list.tsx`): `List` is a white card with even inner padding and no divider lines; `listRow` rows highlight as a rounded pill inset from the edges. Use it for every clickable list.
 - **Avatar** (`components/ui/avatar.tsx`): initials without honorifics, tint chosen by name.
 - **Calendar** (`app/dashboard/[biz]/calendar`, date ranges in `lib/scheduling/calendar.ts`): Day (a column per doctor), Week (a column per date) and Month (six-week grid, three appointments per day then "+N more"), with Today / previous / next, a date picker, a doctor filter and the view switch; state lives in the URL (`view`, `date`, `doctor`). Day and Week share `TimeGrid` (working hours white, the rest shaded, closures and time off as grey bands, a now-line, overlapping appointments side by side via `layoutLanes` in `lib/scheduling/lanes.ts`); Month is `MonthGrid`. Weeks start on Monday.
 - **Overview** (`app/dashboard/[biz]/page.tsx`, widgets in `components/dashboard/overview/`): today's progress (seen / confirmed / pending bar with markers, four ringed stat tiles), doctors on duty, today's appointments (time-led rows, "Add new"), next-7-days load, clinic hours progress, today's flow with a status donut, and the booking-link card.
 - **Brand studio** (`components/studio`): website detection, fine-tune editor and the widget preview (the booking form alone, at desktop or phone width, no mock website around it). The font field is a searchable `FontPicker` of popular Google Fonts grouped by style, each shown in its own face; any other Google Font name can be typed.
-- **Booking demo** (`components/marketing/booking-demo.tsx`): the landing page's working booking card. Doctor rows show next open times as pill chips; tapping one opens an inline form (grid-rows reveal, 300ms ease-out-expo) that ends in a green "Booked" pill pressed in with `animate-stamp` (420ms). Offline demo API, labeled as a demo.
+- **Booking demo** (`components/marketing/booking-demo.tsx`): the landing page's working booking card. Doctor rows show the doctor, then a day label and three equal pill chips aligned under the name; tapping one opens an inline form (grid-rows reveal, 300ms ease-out-expo) that ends in a green "Booked" pill pressed in with `animate-stamp` (420ms). Offline demo API, labeled as a demo.
 
 ## Layout stability
 

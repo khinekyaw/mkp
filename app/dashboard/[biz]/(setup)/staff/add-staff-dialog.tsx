@@ -3,6 +3,7 @@
 import { Plus } from "lucide-react";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -36,8 +37,8 @@ export function AddStaffDialog({ slug, services }: { slug: string; services: { i
               <legend className="mb-1.5 text-xs font-medium text-muted-foreground">{st.servicesTheyProvide}</legend>
               <div className="grid gap-1.5 sm:grid-cols-2">
                 {services.map((s) => (
-                  <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted/50">
-                    <input type="checkbox" name="serviceIds" value={s.id} defaultChecked className="accent-foreground" />
+                  <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-muted/50 has-checked:border-primary/40 has-checked:bg-primary/5">
+                    <Checkbox name="serviceIds" value={s.id} defaultChecked />
                     {s.name}
                   </label>
                 ))}

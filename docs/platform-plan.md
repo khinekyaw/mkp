@@ -30,7 +30,7 @@ Hosted booking pages matter as much as the embed: many Myanmar clinics live on F
 
 ```
 user, session, account, verification     ← Better Auth
-business (id, slug, name, timezone, default_locale, contact, theme jsonb, settings jsonb)
+business (id, slug, name, timezone, default_locale, contact, theme jsonb, settings jsonb, status: active | suspended)
 membership (business_id, user_id, role: owner | admin | staff)
 service (business_id, name, name_my, description, duration_min, buffer_min, price, currency, active, sort)
 provider (business_id, name, title, bio, user_id?, active, sort)        ← doctors / staff
@@ -59,6 +59,51 @@ Settings (jsonb): `leadMinutes`, `horizonDays`, `slotIntervalMin`, `requireConfi
 - [x] Appearance studio saving per-business themes; share page with link, embed code, QR code
 - [x] Email notifications (patient confirmation/cancellation, clinic new-booking alert)
 - [x] Landing page with live theming demo
+
+### Launch readiness (before public launch)
+
+Security
+- [x] Security headers: `frame-ancestors 'none'` everywhere except `/embed/*`, HSTS, nosniff, Referrer-Policy, Permissions-Policy (`next.config.ts`)
+- [x] Email verification required before an account gets a session; fresh link on unverified sign-in; sessions revoked on password reset
+- [x] `business.status` (active | suspended): booking page, embed and public API go dark (404), dashboard shows a notice
+- [ ] Shared rate-limit store (Upstash Redis or a Postgres table) instead of per-instance memory; trust only the platform's client IP header
+- [ ] Better Auth rate limiting on that same shared store (`rateLimit.storage`)
+- [ ] `/api/theme`: global daily cap on AI calls, cache results per domain, larger allowance for signed-in users
+- [ ] Booking spam: cap upcoming bookings per phone per business, cap per business per hour, Cloudflare Turnstile on the form
+- [ ] SSRF: pin the checked IP when fetching (undici `Agent` with custom `lookup`); block NAT64 `64:ff9b::/96`, 6to4 `2002::/16`, hex IPv4-mapped IPv6
+- [ ] 2FA for clinic owners (Better Auth `twoFactor`)
+- [ ] Full Content-Security-Policy (script/style sources with nonces), after the above
+- [ ] Patient data: Terms + Privacy Policy, consent line on the booking form, clinic data export/delete, audit log of booking changes, backups with point-in-time restore
+
+Performance & operations
+- [ ] Deploy functions and Postgres in Singapore (`sin1` / `ap-southeast-1`)
+- [ ] Neon pooled connection string; pool size 1–3 per function
+- [ ] Cache public business/services/schedules (`use cache` + tags, invalidated on dashboard saves); bookings stay live
+- [ ] `pg_trgm` GIN indexes for customer and appointment search
+- [ ] Jobs table + cron (or QStash/Inngest) for emails with retries; replaces fire-and-forget `after()`
+- [ ] Booking page budget on throttled 3G; Burmese font subset; long-lived cache headers for `embed.js`
+- [ ] Sentry, uptime checks, slow-query logging
+- [ ] CI: `typecheck`, `lint`, `test` on every PR
+
+Product
+- [ ] Friendly "not taking online bookings right now" page for suspended clinics (instead of 404 inside iframes)
+- [ ] SMS/Viber reminders on the jobs queue
+- [ ] Team invite flow (roles already exist)
+- [ ] Reschedule (patient manage link + dashboard)
+- [ ] Calendar week view
+- [ ] Account settings: change password, change email, delete account
+- [ ] Facebook Page "Book now" setup guide; Zawgyi detection on patient input
+- [ ] In-app support link (Viber/Messenger)
+
+Super-admin (`/admin`)
+- [ ] Platform role via Better Auth `admin` plugin; `requirePlatformAdmin()` guard; 2FA required
+- [ ] `admin_audit` table: every admin action and impersonation, with a reason
+- [ ] Overview: signups, active clinics (booked in last 7 days), bookings/day, activation funnel, email/SMS/AI spend
+- [ ] Businesses: search, suspend/restore, extend trial, change plan, transfer ownership, change slug, impersonate, soft-delete
+- [ ] Users: verify email, send reset, ban, revoke sessions, memberships
+- [ ] Billing (manual until 2C2P): plan, `trialEndsAt`, payment records, overdue list
+- [ ] Messages log, abuse signals, failed jobs, feature flags, announcement banner
+- [ ] Aggregates by default; patient details only through logged impersonation
 
 ### Phase 2 — Retention & operations (next)
 - Week view in the calendar; drag to reschedule

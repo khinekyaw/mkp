@@ -77,6 +77,8 @@
   // Match the button to the business's brand once its theme loads.
   fetch(origin + "/api/public/b/" + encodeURIComponent(business))
     .then(function (r) {
+      // Unknown or suspended business: don't leave a launcher that opens an error page.
+      if (r.status === 404) btn.remove();
       return r.ok ? r.json() : null;
     })
     .then(function (biz) {

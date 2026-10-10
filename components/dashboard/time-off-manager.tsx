@@ -3,6 +3,7 @@
 import { CalendarOff, Trash2 } from "lucide-react";
 import { useActionState, useCallback, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/misc";
@@ -92,7 +93,7 @@ export function TimeOffManager({
       <form key={formKey} action={action} className="grid gap-3 rounded-md border p-3">
         {providerId ? <input type="hidden" name="providerId" value={providerId} /> : null}
         <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
-          <input type="checkbox" name="allDay" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} className="accent-foreground" />
+          <Checkbox name="allDay" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} />
           {o.allDay}
         </label>
         <div className="grid gap-3 sm:grid-cols-2">

@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Spinner } from "@/components/ui/misc";
 import { authClient } from "@/lib/auth-client";
 import { useSiteCopy } from "@/components/i18n/site-locale";
@@ -38,7 +38,16 @@ function ResetForm() {
   return (
     <form onSubmit={onSubmit} className="grid gap-4">
       <Field label={t.auth.reset.newPassword} htmlFor="password" hint={t.auth.passwordHint} required>
-        <Input id="password" name="password" type="password" autoComplete="new-password" required minLength={8} autoFocus />
+        <PasswordInput
+          id="password"
+          name="password"
+          autoComplete="new-password"
+          required
+          minLength={8}
+          autoFocus
+          showLabel={t.auth.showPassword}
+          hideLabel={t.auth.hidePassword}
+        />
       </Field>
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       <Button type="submit" disabled={pending}>
