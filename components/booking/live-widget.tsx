@@ -22,5 +22,7 @@ export function LiveWidget({
   onBooked?: (booking: BookingConfirmation) => void;
 }) {
   const api = useMemo(() => httpApi(business.id), [business.id]);
-  return <BookingWidget business={business} api={api} locale={locale} source={source} className={className} onBooked={onBooked} />;
+  return (
+    <BookingWidget business={business} api={api} locale={locale} source={source} className={className} onBooked={onBooked} live />
+  );
 }

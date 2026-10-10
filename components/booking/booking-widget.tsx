@@ -14,6 +14,7 @@ import { addDays, dateInZone } from "@/lib/scheduling/time";
 import { cn } from "@/lib/utils";
 import type { BookingApi } from "./api";
 import { ThemeScope } from "./theme-scope";
+import { Turnstile } from "./turnstile";
 
 const WINDOW_DAYS = 14;
 
@@ -29,6 +30,8 @@ export type BookingWidgetProps = {
   /** Override the business theme (studio previews). */
   theme?: PublicBusiness["theme"];
   onBooked?: (booking: BookingConfirmation) => void;
+  /** Real bookings only: show the bot check when one is configured. */
+  live?: boolean;
 };
 
 /** Small selectable tile used for services, providers, dates and times. */
@@ -59,6 +62,7 @@ export function BookingWidget({
   className,
   theme,
   onBooked,
+  live = false,
 }: BookingWidgetProps) {
   const [locale, setLocale] = useState<Locale>(initialLocale ?? business.locales[0] ?? "en");
   const t = MESSAGES[locale];
@@ -74,6 +78,7 @@ export function BookingWidget({
   const [cache, setCache] = useState<Record<string, AvailabilityResponse | "error">>({});
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [confirmation, setConfirmation] = useState<BookingConfirmation | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -152,12 +157,13 @@ export function BookingWidget({
       email: String(form.get("email") ?? ""),
       note: String(form.get("note") ?? ""),
       company: String(form.get("company") ?? ""),
+      turnstileToken: turnstileToken ?? undefined,
       locale,
       source,
     });
     setSubmitting(false);
     if (!result.ok) {
-      setFormError(result.error);
+      setFormError((result.code && t.errors[result.code]) || result.error);
       setFieldErrors((result.fields as FieldErrors) ?? {});
       if (result.status === 409) {
         setReloadKey((k) => k + 1);
@@ -394,12 +400,19 @@ export function BookingWidget({
           </Field>
           {/* Honeypot for bots; hidden from people and assistive tech. */}
           <input type="text" name="company" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" />
+          {live ? <Turnstile locale={locale} onToken={setTurnstileToken} /> : null}
 
           {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
           <Button type="submit" size="lg" disabled={submitting}>
             {submitting ? <Spinner /> : null}
             {t.confirm}
           </Button>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            {t.consent(business.name)}{" "}
+            <a href="/privacy" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-foreground">
+              {t.privacy}
+            </a>
+          </p>
         </form>
       ) : confirmation ? (
         <div className="grid justify-items-center gap-4 py-6 text-center">

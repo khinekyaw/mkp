@@ -95,6 +95,12 @@ const COPY = {
     phone: "Phone",
     manage: "View or cancel",
     rebook: "Book again",
+    reminderSubject: (b: string) => `Reminder: your appointment at ${b}`,
+    reminderHeading: "See you soon",
+    reminderBody: "This is a reminder of your upcoming appointment.",
+    rescheduledSubject: (b: string) => `Your appointment at ${b} was moved`,
+    rescheduledHeading: "Appointment moved",
+    rescheduledBody: "Here are the new details.",
   },
   my: {
     confirmedSubject: (b: string) => `${b} တွင် ရက်ချိန်း ရပြီးပါပြီ`,
@@ -112,17 +118,38 @@ const COPY = {
     phone: "ဖုန်း",
     manage: "ကြည့်ရန် / ပယ်ဖျက်ရန်",
     rebook: "ထပ်မံ ရက်ချိန်းယူရန်",
+    reminderSubject: (b: string) => `သတိပေးချက် — ${b} ရှိ သင့်ရက်ချိန်း`,
+    reminderHeading: "မကြာမီ တွေ့ဆုံကြမည်",
+    reminderBody: "လာမည့် ရက်ချိန်းကို သတိပေးအပ်ပါသည်။",
+    rescheduledSubject: (b: string) => `${b} ရှိ သင့်ရက်ချိန်းကို ရွှေ့ပြီးပါပြီ`,
+    rescheduledHeading: "ရက်ချိန်း ရွှေ့ပြီး",
+    rescheduledBody: "ပြင်ဆင်ထားသော အသေးစိတ်များမှာ အောက်ပါအတိုင်း ဖြစ်ပါသည်။",
   },
 } as const;
 
-/** Patient-facing confirmation, pending notice, or cancellation. */
-export function customerBookingEmail(d: BookingEmailData & { to: string }): Email {
+export type CustomerEmailKind = "confirmed" | "pending" | "cancelled" | "reminder" | "rescheduled";
+
+/** Patient-facing confirmation, pending notice, cancellation, reminder or reschedule notice. */
+export function customerBookingEmail(d: BookingEmailData & { to: string; kind?: "reminder" | "rescheduled" }): Email {
   const c = COPY[d.locale];
   const when = formatWhen(d.startsAt, d.timezone, d.locale);
-  const kind = d.status === "cancelled" ? "cancelled" : d.status === "pending" ? "pending" : "confirmed";
-  const subject =
-    kind === "cancelled" ? c.cancelledSubject(d.businessName) : kind === "pending" ? c.pendingSubject(d.businessName) : c.confirmedSubject(d.businessName);
-  const heading = kind === "cancelled" ? c.cancelledHeading : kind === "pending" ? c.pendingHeading : c.confirmedHeading;
+  const kind: CustomerEmailKind = d.kind ?? (d.status === "cancelled" ? "cancelled" : d.status === "pending" ? "pending" : "confirmed");
+  const subject = {
+    cancelled: c.cancelledSubject,
+    pending: c.pendingSubject,
+    confirmed: c.confirmedSubject,
+    reminder: c.reminderSubject,
+    rescheduled: c.rescheduledSubject,
+  }[kind](d.businessName);
+  const heading = {
+    cancelled: c.cancelledHeading,
+    pending: c.pendingHeading,
+    confirmed: c.confirmedHeading,
+    reminder: c.reminderHeading,
+    rescheduled: c.rescheduledHeading,
+  }[kind];
+  const leads: Partial<Record<CustomerEmailKind, string>> = { pending: c.pendingBody, reminder: c.reminderBody, rescheduled: c.rescheduledBody };
+  const lead = leads[kind];
   const details: [string, string | null | undefined][] = [
     [c.when, when],
     [c.service, d.serviceName],
@@ -133,24 +160,26 @@ export function customerBookingEmail(d: BookingEmailData & { to: string }): Emai
   return {
     to: d.to,
     subject,
-    text: [c.hi(d.customerName), "", heading, kind === "pending" ? c.pendingBody : "", ...details.filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`), "", `${c.manage}: ${d.manageUrl}`]
+    text: [c.hi(d.customerName), "", heading, lead ?? "", ...details.filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`), "", `${c.manage}: ${d.manageUrl}`]
       .filter((l) => l !== undefined)
       .join("\n"),
     html: layout({
       heading,
-      body: `<p>${esc(c.hi(d.customerName))}</p>${kind === "pending" ? `<p>${esc(c.pendingBody)}</p>` : ""}${rows(details)}`,
+      body: `<p>${esc(c.hi(d.customerName))}</p>${lead ? `<p>${esc(lead)}</p>` : ""}${rows(details)}`,
       cta: kind === "cancelled" ? undefined : { label: c.manage, url: d.manageUrl },
     }),
   };
 }
 
-/** Staff-facing alert for new bookings and patient cancellations. */
-export function businessBookingEmail(d: BookingEmailData & { to: string[]; event: "created" | "cancelled" }): Email {
+/** Staff-facing alert for new bookings and patient cancellations or moves. */
+export function businessBookingEmail(d: BookingEmailData & { to: string[]; event: "created" | "cancelled" | "rescheduled" }): Email {
   const when = formatWhen(d.startsAt, d.timezone, "en");
   const subject =
     d.event === "cancelled"
       ? `Cancelled: ${d.customerName} · ${when}`
-      : `${d.status === "pending" ? "New request" : "New booking"}: ${d.customerName} · ${when}`;
+      : d.event === "rescheduled"
+        ? `Moved: ${d.customerName} · now ${when}`
+        : `${d.status === "pending" ? "New request" : "New booking"}: ${d.customerName} · ${when}`;
   const details: [string, string | null | undefined][] = [
     ["When", when],
     ["Service", d.serviceName],
@@ -165,9 +194,44 @@ export function businessBookingEmail(d: BookingEmailData & { to: string[]; event
     subject,
     text: [subject, "", ...details.filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`), "", `Open dashboard: ${d.dashboardUrl}`].join("\n"),
     html: layout({
-      heading: d.event === "cancelled" ? "Appointment cancelled by patient" : d.status === "pending" ? "New booking request" : "New booking",
+      heading:
+        d.event === "cancelled"
+          ? "Appointment cancelled by patient"
+          : d.event === "rescheduled"
+            ? "Appointment moved by patient"
+            : d.status === "pending"
+              ? "New booking request"
+              : "New booking",
       body: rows(details),
       cta: { label: d.status === "pending" && d.event === "created" ? "Review request" : "Open dashboard", url: d.dashboardUrl },
+    }),
+  };
+}
+
+const ROLE_LABEL = { owner: "an owner", admin: "an admin", staff: "a staff member" } as const;
+
+export function inviteEmail({
+  to,
+  businessName,
+  inviterName,
+  role,
+  url,
+}: {
+  to: string;
+  businessName: string;
+  inviterName: string;
+  role: keyof typeof ROLE_LABEL;
+  url: string;
+}): Email {
+  const line = `${inviterName} invited you to join ${businessName} as ${ROLE_LABEL[role]}.`;
+  return {
+    to,
+    subject: `Join ${businessName} on Booking Widget`,
+    text: `${line}\n\nAccept the invite: ${url}\n\nThe link expires in 7 days. If you weren't expecting this, ignore this email.`,
+    html: layout({
+      heading: `Join ${businessName}`,
+      body: `<p>${esc(line)}</p><p>The link expires in 7 days. If you weren't expecting this, you can ignore this email.</p>`,
+      cta: { label: "Accept invite", url },
     }),
   };
 }

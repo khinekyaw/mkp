@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown, Cross, ExternalLink, Grip, LogOut, Plus, SlidersHorizontal } from "lucide-react";
+import { Check, ChevronDown, Cross, ExternalLink, Grip, LifeBuoy, LogOut, Plus, ShieldCheck, SlidersHorizontal, UserCog } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSyncExternalStore } from "react";
@@ -21,6 +21,10 @@ import { Avatar } from "@/components/ui/avatar";
 import { lastSetupKey, SETUP_PAGES } from "./setup-pages";
 
 type Biz = { slug: string; name: string };
+type Me = { name: string; email: string; platformAdmin?: boolean };
+
+/** Where clinics reach us (e.g. a Viber or Messenger link); the menu item hides until it's set. */
+const SUPPORT_URL = process.env.NEXT_PUBLIC_SUPPORT_URL;
 
 const subscribeToStorage = (onChange: () => void) => {
   window.addEventListener("storage", onChange);
@@ -58,7 +62,7 @@ export function TopNav({
 }: {
   business: Biz;
   businesses: Biz[];
-  user: { name: string; email: string };
+  user: Me;
   role: MemberRole;
 }) {
   const pathname = usePathname();
@@ -164,7 +168,7 @@ export function TopNav({
   );
 }
 
-function AccountMenu({ user, role, slug }: { user: { name: string; email: string }; role: MemberRole; slug: string }) {
+function AccountMenu({ user, role, slug }: { user: Me; role: MemberRole; slug: string }) {
   const router = useRouter();
   const { t } = useSiteCopy();
   return (
@@ -185,6 +189,20 @@ function AccountMenu({ user, role, slug }: { user: { name: string; email: string
         <DropdownMenuItem onSelect={() => window.open(`/b/${slug}`, "_blank", "noreferrer")} className="lg:hidden">
           <ExternalLink /> {t.dash.nav.viewBookingPage}
         </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => router.push(`/dashboard/${slug}/account`)}>
+          <UserCog /> {t.dash.nav.accountSettings}
+        </DropdownMenuItem>
+        {SUPPORT_URL ? (
+          <DropdownMenuItem onSelect={() => window.open(SUPPORT_URL, "_blank", "noreferrer")}>
+            <LifeBuoy /> {t.dash.nav.support}
+          </DropdownMenuItem>
+        ) : null}
+        {user.platformAdmin ? (
+          <DropdownMenuItem onSelect={() => router.push("/admin")}>
+            <ShieldCheck /> {t.dash.nav.platformAdmin}
+          </DropdownMenuItem>
+        ) : null}
+        <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={async () => {
             await signOut();

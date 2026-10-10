@@ -20,7 +20,8 @@ export function normalizeInputUrl(input: string): string {
   return /^(localhost|127\.0\.0\.1)(:|\/|$)/.test(trimmed) ? `http://${trimmed}` : `https://${trimmed}`;
 }
 
-export async function detectTheme(input: string): Promise<DetectThemeResult> {
+/** `allowAi: false` (e.g. the daily AI budget is spent) returns the heuristic theme without calling the model. */
+export async function detectTheme(input: string, { allowAi = true } = {}): Promise<DetectThemeResult> {
   const signals = await collectSignals(normalizeInputUrl(input));
   const heuristic = heuristicCore(signals);
   const summary = {
@@ -34,6 +35,7 @@ export async function detectTheme(input: string): Promise<DetectThemeResult> {
   };
 
   try {
+    if (!allowAi) throw new AiUnavailableError("AI theming is busy right now; used heuristics instead.");
     const { core, rationale } = await aiThemeCore(signals, heuristic);
     return { theme: await verifyFonts(buildTheme(core)), source: "ai", rationale, signals: summary };
   } catch (err) {

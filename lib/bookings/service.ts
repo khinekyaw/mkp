@@ -1,11 +1,12 @@
-import { and, asc, count, eq, gt, gte, inArray, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, count, eq, gt, gte, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { readSettings } from "../business/settings";
-import { db, schema } from "../db";
+import { db, schema, type Tx } from "../db";
 import type { Business, BookingStatus } from "../db/schema";
 import { newToken } from "../id";
 import { normalizePhone } from "../phone";
 import { computeAvailability, pickProvider, type Range, type WeeklyInterval } from "../scheduling/availability";
 import { addDays, dateInZone, dayRangeUtc } from "../scheduling/time";
+import { toUnicode } from "../zawgyi";
 
 export const ACTIVE_STATUSES: BookingStatus[] = ["pending", "confirmed"];
 
@@ -15,7 +16,12 @@ export type BookingErrorCode =
   | "slot_unavailable"
   | "not_found"
   | "too_late_to_cancel"
-  | "already_cancelled";
+  | "already_cancelled"
+  | "too_many_bookings"
+  | "not_reschedulable";
+
+/** Online bookings one phone number may hold at a business at once (stops calendar-filling spam). */
+export const MAX_UPCOMING_PER_PHONE = 3;
 
 export class BookingError extends Error {
   constructor(
@@ -36,9 +42,20 @@ type AvailabilityOptions = {
   now?: Date;
   /** Staff booking from the dashboard may ignore lead time and the booking horizon. */
   asStaff?: boolean;
+  /** A booking being rescheduled doesn't block its own new time. */
+  excludeBookingId?: string;
 };
 
-export async function getAvailability({ business, serviceId, providerId, fromDate, days, now = new Date(), asStaff }: AvailabilityOptions) {
+export async function getAvailability({
+  business,
+  serviceId,
+  providerId,
+  fromDate,
+  days,
+  now = new Date(),
+  asStaff,
+  excludeBookingId,
+}: AvailabilityOptions) {
   const settings = readSettings(business.settings);
   const tz = business.timezone;
 
@@ -101,6 +118,7 @@ export async function getAvailability({ business, serviceId, providerId, fromDat
               inArray(schema.booking.status, ACTIVE_STATUSES),
               lt(schema.booking.startsAt, rangeEnd),
               gt(schema.booking.endsAt, rangeStart),
+              excludeBookingId ? ne(schema.booking.id, excludeBookingId) : undefined,
             ),
           )
       : Promise.resolve([]),
@@ -191,32 +209,39 @@ export async function createBooking(input: CreateBookingInput) {
   const blockEnd = new Date(end.getTime() + service.bufferMin * 60_000);
   const phone = normalizePhone(input.customer.phone);
   const email = input.customer.email?.trim() || null;
+  // Zawgyi-typed names and notes would show as garbage to the clinic.
+  const name = toUnicode(input.customer.name.trim());
+  const note = toUnicode(input.note?.trim()) || null;
   const status: BookingStatus = !input.asStaff && settings.requireConfirmation ? "pending" : "confirmed";
 
-  return db.transaction(async (tx) => {
-    // Serialize bookings per provider, then re-check for overlaps inside the lock.
-    await tx.execute(sql`select id from provider where id = ${providerId} for update`);
-    const clash = await tx
-      .select({ id: schema.booking.id })
+  if (!input.asStaff) {
+    const [{ n }] = await db
+      .select({ n: count() })
       .from(schema.booking)
+      .innerJoin(schema.customer, eq(schema.customer.id, schema.booking.customerId))
       .where(
         and(
-          eq(schema.booking.providerId, providerId),
+          eq(schema.booking.businessId, business.id),
+          eq(schema.customer.phone, phone),
           inArray(schema.booking.status, ACTIVE_STATUSES),
-          lt(schema.booking.startsAt, blockEnd),
-          sql`${schema.booking.endsAt} + make_interval(mins => ${schema.booking.bufferMin}) > ${start.toISOString()}::timestamptz`,
+          gte(schema.booking.startsAt, new Date()),
         ),
-      )
-      .limit(1);
-    if (clash.length) throw new BookingError("slot_unavailable", "Sorry, someone just booked that time.");
+      );
+    if (Number(n) >= MAX_UPCOMING_PER_PHONE) {
+      throw new BookingError("too_many_bookings", "You already have several upcoming appointments here. Please call the clinic to book more.");
+    }
+  }
+
+  return db.transaction(async (tx) => {
+    await lockAndCheckFree(tx, providerId, start, blockEnd);
 
     const [cust] = await tx
       .insert(schema.customer)
-      .values({ businessId: business.id, name: input.customer.name.trim(), phone, email })
+      .values({ businessId: business.id, name, phone, email })
       .onConflictDoUpdate({
         target: [schema.customer.businessId, schema.customer.phone],
         set: {
-          name: input.customer.name.trim(),
+          name,
           email: sql`coalesce(excluded.email, ${schema.customer.email})`,
           updatedAt: new Date(),
         },
@@ -235,15 +260,84 @@ export async function createBooking(input: CreateBookingInput) {
         bufferMin: service.bufferMin,
         status,
         source: input.source,
-        customerName: input.customer.name.trim(),
+        customerName: name,
         customerPhone: input.customer.phone.trim(),
         customerEmail: email,
-        note: input.note?.trim() || null,
+        note,
         locale: input.locale,
         manageToken: newToken(),
+        // Submitting the online form is the patient's agreement to the privacy notice shown on it.
+        consentAt: input.asStaff ? null : new Date(),
       })
       .returning();
     return created;
+  });
+}
+
+/** Serializes writes per provider, then re-checks for overlaps inside the lock. */
+async function lockAndCheckFree(tx: Tx, providerId: string, start: Date, blockEnd: Date, excludeBookingId?: string) {
+  await tx.execute(sql`select id from provider where id = ${providerId} for update`);
+  const clash = await tx
+    .select({ id: schema.booking.id })
+    .from(schema.booking)
+    .where(
+      and(
+        eq(schema.booking.providerId, providerId),
+        inArray(schema.booking.status, ACTIVE_STATUSES),
+        lt(schema.booking.startsAt, blockEnd),
+        sql`${schema.booking.endsAt} + make_interval(mins => ${schema.booking.bufferMin}) > ${start.toISOString()}::timestamptz`,
+        excludeBookingId ? ne(schema.booking.id, excludeBookingId) : undefined,
+      ),
+    )
+    .limit(1);
+  if (clash.length) throw new BookingError("slot_unavailable", "Sorry, someone just booked that time.");
+}
+
+export type RescheduleInput = {
+  business: Business;
+  bookingId: string;
+  start: string;
+  /** Null keeps the current provider. */
+  providerId?: string | null;
+  asStaff?: boolean;
+};
+
+/** Moves an active booking to a new time (and optionally provider), with the same checks as a new booking. */
+export async function rescheduleBooking({ business, bookingId, start: startIso, providerId: requested, asStaff }: RescheduleInput) {
+  const [current] = await db
+    .select()
+    .from(schema.booking)
+    .where(and(eq(schema.booking.id, bookingId), eq(schema.booking.businessId, business.id)))
+    .limit(1);
+  if (!current) throw new BookingError("not_found", "Booking not found.");
+  if (!ACTIVE_STATUSES.includes(current.status)) throw new BookingError("not_reschedulable", "This appointment can't be moved.");
+
+  const start = new Date(startIso);
+  if (Number.isNaN(start.getTime())) throw new BookingError("slot_unavailable", "That time isn't available.");
+  const providerId = requested || current.providerId;
+
+  const { days, service } = await getAvailability({
+    business,
+    serviceId: current.serviceId,
+    providerId,
+    fromDate: dateInZone(start, business.timezone),
+    days: 1,
+    asStaff,
+    excludeBookingId: current.id,
+  });
+  const slot = days[0]?.slots.find((s) => s.start === start.toISOString());
+  if (!slot?.providerIds.includes(providerId)) throw new BookingError("slot_unavailable", "Sorry, that time is no longer available.");
+
+  const end = new Date(start.getTime() + service.durationMin * 60_000);
+  const blockEnd = new Date(end.getTime() + service.bufferMin * 60_000);
+  return db.transaction(async (tx) => {
+    await lockAndCheckFree(tx, providerId, start, blockEnd, current.id);
+    const [updated] = await tx
+      .update(schema.booking)
+      .set({ startsAt: start, endsAt: end, bufferMin: service.bufferMin, providerId })
+      .where(eq(schema.booking.id, current.id))
+      .returning();
+    return { previous: current, updated };
   });
 }
 

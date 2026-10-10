@@ -5,7 +5,7 @@ import { addDays, dateInZone, timeOf, weekday, zonedToUtc } from "@/lib/scheduli
 export type AvailabilityQuery = { serviceId: string; providerId: string | null; from: string; days: number };
 export type BookResult =
   | { ok: true; booking: BookingConfirmation }
-  | { ok: false; status: number; error: string; fields?: Record<string, string[] | undefined> };
+  | { ok: false; status: number; error: string; code?: string; fields?: Record<string, string[] | undefined> };
 
 /** The widget's only dependency on the outside world, so it can run live, in preview, or as an offline demo. */
 export interface BookingApi {
@@ -31,7 +31,7 @@ export function httpApi(businessId: string, base = ""): BookingApi {
           body: JSON.stringify(request),
         });
         const json = await res.json().catch(() => ({}));
-        if (!res.ok) return { ok: false, status: res.status, error: json.error ?? "Something went wrong.", fields: json.fields };
+        if (!res.ok) return { ok: false, status: res.status, error: json.error ?? "Something went wrong.", code: json.code, fields: json.fields };
         return { ok: true, booking: json.booking };
       } catch {
         return { ok: false, status: 0, error: "Network error. Please try again." };

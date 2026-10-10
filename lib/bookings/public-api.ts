@@ -27,6 +27,8 @@ export const createBookingSchema = z.object({
   source: z.enum(["widget", "page"]).default("widget"),
   /** Honeypot: real people never fill this hidden field. */
   company: z.string().max(0).optional(),
+  /** Cloudflare Turnstile response, when bot protection is configured. */
+  turnstileToken: z.string().max(4096).optional(),
 });
 
 export type CreateBookingRequest = z.input<typeof createBookingSchema>;
@@ -40,4 +42,5 @@ export type BookingConfirmation = {
   manageUrl: string;
 };
 
-export type ApiError = { error: string; fields?: Record<string, string[] | undefined> };
+/** `code` lets the widget show its own translated message. */
+export type ApiError = { error: string; code?: string; fields?: Record<string, string[] | undefined> };

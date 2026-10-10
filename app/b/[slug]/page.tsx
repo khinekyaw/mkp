@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { LiveWidget } from "@/components/booking/live-widget";
 import { ThemeScope } from "@/components/booking/theme-scope";
-import { getPublicBusiness } from "@/lib/business/public";
+import { BookingUnavailable } from "@/components/booking/unavailable";
+import { getPublicBusiness, getUnavailableNotice } from "@/lib/business/public";
 import { toLocale } from "@/lib/i18n";
 
 const load = cache((slug: string) => getPublicBusiness({ slug }));
@@ -23,8 +24,12 @@ export async function generateMetadata({ params }: PageProps<"/b/[slug]">): Prom
 export default async function BookingPage({ params, searchParams }: PageProps<"/b/[slug]">) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const business = await load(slug);
-  if (!business) notFound();
   const lang = Array.isArray(query.lang) ? query.lang[0] : query.lang;
+  if (!business) {
+    const notice = await getUnavailableNotice({ slug });
+    if (!notice) notFound();
+    return <BookingUnavailable notice={notice} locale={toLocale(lang)} className="min-h-dvh" />;
+  }
   const tel = business.phone?.replace(/[^\d+]/g, "");
 
   return (

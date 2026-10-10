@@ -62,48 +62,56 @@ Settings (jsonb): `leadMinutes`, `horizonDays`, `slotIntervalMin`, `requireConfi
 
 ### Launch readiness (before public launch)
 
+Built Oct 10, 2026 unless marked otherwise. "Needs input" items are blocked on an account, key or decision.
+
 Security
-- [x] Security headers: `frame-ancestors 'none'` everywhere except `/embed/*`, HSTS, nosniff, Referrer-Policy, Permissions-Policy (`next.config.ts`)
-- [x] Email verification required before an account gets a session; fresh link on unverified sign-in; sessions revoked on password reset
-- [x] `business.status` (active | suspended): booking page, embed and public API go dark (404), dashboard shows a notice
-- [ ] Shared rate-limit store (Upstash Redis or a Postgres table) instead of per-instance memory; trust only the platform's client IP header
-- [ ] Better Auth rate limiting on that same shared store (`rateLimit.storage`)
-- [ ] `/api/theme`: global daily cap on AI calls, cache results per domain, larger allowance for signed-in users
-- [ ] Booking spam: cap upcoming bookings per phone per business, cap per business per hour, Cloudflare Turnstile on the form
-- [ ] SSRF: pin the checked IP when fetching (undici `Agent` with custom `lookup`); block NAT64 `64:ff9b::/96`, 6to4 `2002::/16`, hex IPv4-mapped IPv6
-- [ ] 2FA for clinic owners (Better Auth `twoFactor`)
-- [ ] Full Content-Security-Policy (script/style sources with nonces), after the above
-- [ ] Patient data: Terms + Privacy Policy, consent line on the booking form, clinic data export/delete, audit log of booking changes, backups with point-in-time restore
+- [x] Security headers and an allowlist CSP (`next.config.ts`): only `/embed/*` may be framed; scripts, styles, fonts, frames and connections limited to us, Google Fonts and Cloudflare Turnstile
+- [x] Email verification before an account gets a session; sessions revoked on password reset
+- [x] `business.status` (active | suspended) and platform maintenance mode: booking page and embed show a "not taking online bookings" notice with the clinic's phone; public API 404s; dashboard keeps working
+- [x] Shared rate limits in Postgres (`throttle` table) for the public API and theme detection; client IP only from a trusted header (`TRUSTED_IP_HEADER`, `x-real-ip` on Vercel, else right-most `x-forwarded-for`)
+- [x] Better Auth limiter on the database (`rate_limit` table) with tighter rules for sign-in, sign-up, reset and 2FA
+- [x] `/api/theme`: per-site cache (7 days), daily AI budget (`THEME_AI_DAILY_LIMIT`, heuristics after), 30/10 min for signed-in users, 5/10 min anonymous
+- [x] Booking spam: max 3 upcoming online bookings per phone per clinic, per-clinic hourly cap, per-IP cap, honeypot; Cloudflare Turnstile wired in (needs input: keys)
+- [x] SSRF: DNS pinned in the socket's own lookup (undici), `BlockList` covering private, CGNAT, link-local, NAT64, 6to4, Teredo and mapped addresses
+- [x] Two-step verification (TOTP + backup codes) for everyone; required for platform admins in production
+- [x] Terms and Privacy Policy pages (needs input: legal review, entity name, contact), consent line on the booking form (`booking.consent_at`), sign-up agreement line
+- [x] Clinic data export (JSON, owners) and clinic deletion with a 30-day grace period, purged by the daily job
+- [x] Audit log (`audit_event`): bookings, team, data and every admin action; clinic Activity page
+- [ ] Backups with point-in-time restore (needs input: Neon plan/branching settings)
+- [ ] Nonce- or SRI-based script CSP (today: origin allowlist with `'unsafe-inline'`; nonces would make every page dynamic)
 
 Performance & operations
-- [ ] Deploy functions and Postgres in Singapore (`sin1` / `ap-southeast-1`)
-- [ ] Neon pooled connection string; pool size 1–3 per function
-- [ ] Cache public business/services/schedules (`use cache` + tags, invalidated on dashboard saves); bookings stay live
-- [ ] `pg_trgm` GIN indexes for customer and appointment search
-- [ ] Jobs table + cron (or QStash/Inngest) for emails with retries; replaces fire-and-forget `after()`
-- [ ] Booking page budget on throttled 3G; Burmese font subset; long-lived cache headers for `embed.js`
-- [ ] Sentry, uptime checks, slow-query logging
-- [ ] CI: `typecheck`, `lint`, `test` on every PR
+- [x] `vercel.json`: functions in Singapore (`sin1`); crons for jobs (every 5 min) and daily maintenance (needs input: Postgres region, Vercel plan)
+- [x] Pool size per instance (`DATABASE_POOL_MAX`, 3 on Vercel); point `DATABASE_URL` at a pooler
+- [x] `pg_trgm` GIN indexes for customer and appointment search
+- [x] Jobs queue (`job` table): emails retried with backoff, reminders, daily maintenance; `/api/cron/[task]` behind `CRON_SECRET`; admin view with retry
+- [x] Fonts self-hosted and subset by `next/font` (Archivo, Noto Sans Myanmar); `embed.js` cached for an hour
+- [x] Error reporting: JSON error lines via `instrumentation.ts` plus optional `ERROR_WEBHOOK_URL`; `/api/health` for uptime monitors (needs input: monitor, optional Sentry)
+- [x] CI (`.github/workflows/ci.yml`): typecheck (with route typegen), lint, test, migrate, build
+- [ ] Cache public business/services/schedules with `use cache` (needs `cacheComponents`, which changes rendering app-wide; do after launch with measurements)
+- [ ] Measure the booking page on throttled 3G; slow-query logging (Neon's query insights)
 
 Product
-- [ ] Friendly "not taking online bookings right now" page for suspended clinics (instead of 404 inside iframes)
-- [ ] SMS/Viber reminders on the jobs queue
-- [ ] Team invite flow (roles already exist)
-- [ ] Reschedule (patient manage link + dashboard)
-- [ ] Calendar week view
-- [ ] Account settings: change password, change email, delete account
-- [ ] Facebook Page "Book now" setup guide; Zawgyi detection on patient input
-- [ ] In-app support link (Viber/Messenger)
+- [x] Friendly "not taking online bookings" page instead of a 404 (also inside iframes)
+- [x] Reminders: email 24 h before (or 2 h for same-day bookings), rescheduled with the appointment, dropped on cancel
+- [ ] SMS/Viber reminders (needs input: provider and sender ID)
+- [x] Team invites with roles (owner/admin/staff), revoke, remove, change role; last owner protected
+- [x] Reschedule: patients from the manage link (within the cancel window), staff from the booking dialog
+- [x] Calendar week view (already built)
+- [x] Account settings: name, email change (verified), password, 2FA, sign out other devices, delete account (blocked while sole owner)
+- [x] Facebook "Book now" guide on Share & embed; Zawgyi → Unicode for patient names and notes (Google's `myanmar-tools`)
+- [x] In-app support link (`NEXT_PUBLIC_SUPPORT_URL`, needs input)
 
 Super-admin (`/admin`)
-- [ ] Platform role via Better Auth `admin` plugin; `requirePlatformAdmin()` guard; 2FA required
-- [ ] `admin_audit` table: every admin action and impersonation, with a reason
-- [ ] Overview: signups, active clinics (booked in last 7 days), bookings/day, activation funnel, email/SMS/AI spend
-- [ ] Businesses: search, suspend/restore, extend trial, change plan, transfer ownership, change slug, impersonate, soft-delete
-- [ ] Users: verify email, send reset, ban, revoke sessions, memberships
-- [ ] Billing (manual until 2C2P): plan, `trialEndsAt`, payment records, overdue list
-- [ ] Messages log, abuse signals, failed jobs, feature flags, announcement banner
-- [ ] Aggregates by default; patient details only through logged impersonation
+- [x] Better Auth `admin` plugin; 404 for non-admins; 2FA required in production; `pnpm admin:grant <email>` bootstraps the first admin
+- [x] Every admin action audited with a reason; support sessions ("Sign in as owner", 1 hour) show a banner and appear in the clinic's activity
+- [x] Overview: clinics, active clinics, sign-ups, bookings, online share, no-show rate, jobs, AI calls, activation funnel
+- [x] Clinics: search, suspend/restore, plan and trial end, record payments, make owner, change link, support session, delete/undelete
+- [x] Users: mark verified, send reset, ban/unban, sign out everywhere, grant/revoke platform admin
+- [x] Billing (manual): trial / paid until / overdue per clinic
+- [x] Jobs (failed + waiting, retry, run now), audit log, platform settings (announcement banner EN/MY, maintenance mode)
+- [x] Aggregates by default; patient details only inside a logged support session
+- [ ] Feature flags per clinic and an abuse view (wait until there's something to flag)
 
 ### Phase 2 — Retention & operations (next)
 - Week view in the calendar; drag to reschedule

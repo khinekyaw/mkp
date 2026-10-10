@@ -55,6 +55,23 @@ const en = {
   call: "Call",
   bookAgain: "Book again",
   notFound: "We couldn't find that appointment.",
+  consent: (clinic: string) => `By booking, you agree that ${clinic} may keep these details to manage your appointment.`,
+  privacy: "Privacy notice",
+  errors: {
+    slot_unavailable: "Sorry, that time was just taken. Please pick another.",
+    too_many_bookings: "You already have several upcoming appointments here. Please call the clinic to book more.",
+    rate_limited: "Too many attempts. Please wait a few minutes and try again.",
+    verify_failed: "Please complete the check above and try again.",
+    generic: "Something went wrong. Please try again.",
+    not_reschedulable: "This appointment can't be changed online anymore. Please call the clinic.",
+  } as Record<string, string>,
+  reschedule: "Change time",
+  rescheduleTitle: "Pick a new time",
+  rescheduleConfirm: "Move appointment",
+  rescheduled: "Your appointment was moved.",
+  pickDate: "Choose a date",
+  unavailableTitle: "Not taking online bookings",
+  unavailableBody: "This clinic isn't taking online bookings right now. Please contact them directly.",
 };
 
 const my: typeof en = {
@@ -99,6 +116,23 @@ const my: typeof en = {
   call: "ဖုန်းခေါ်ရန်",
   bookAgain: "ထပ်မံ ရက်ချိန်းယူရန်",
   notFound: "ထိုရက်ချိန်းကို ရှာမတွေ့ပါ။",
+  consent: (clinic: string) => `ရက်ချိန်းယူခြင်းဖြင့် သင့်ရက်ချိန်းကို စီမံရန် ဤအချက်အလက်များကို ${clinic} က သိမ်းဆည်းခွင့်ပြုပါသည်။`,
+  privacy: "ကိုယ်ရေးအချက်အလက် မူဝါဒ",
+  errors: {
+    slot_unavailable: "ထိုအချိန်ကို တစ်ယောက်ယောက် ယူသွားပါပြီ။ အခြားအချိန် ရွေးပါ။",
+    too_many_bookings: "ဤဆေးခန်းတွင် လာမည့် ရက်ချိန်းများ အများအပြား ရှိနေပါပြီ။ ထပ်မံယူလိုပါက ဆေးခန်းသို့ ဖုန်းဆက်ပါ။",
+    rate_limited: "ကြိုးစားမှု များလွန်းနေပါသည်။ မိနစ်အနည်းငယ် စောင့်ပြီး ထပ်စမ်းပါ။",
+    verify_failed: "အပေါ်ရှိ စစ်ဆေးမှုကို ပြီးအောင်လုပ်ပြီး ထပ်စမ်းပါ။",
+    generic: "တစ်ခုခု မှားယွင်းသွားပါသည်။ ထပ်စမ်းပါ။",
+    not_reschedulable: "ဤရက်ချိန်းကို အွန်လိုင်းမှ ပြောင်း၍ မရတော့ပါ။ ဆေးခန်းသို့ ဖုန်းဆက်ပါ။",
+  },
+  reschedule: "အချိန်ပြောင်းရန်",
+  rescheduleTitle: "အချိန်အသစ် ရွေးပါ",
+  rescheduleConfirm: "ရက်ချိန်း ရွှေ့မည်",
+  rescheduled: "သင့်ရက်ချိန်းကို ရွှေ့ပြီးပါပြီ။",
+  pickDate: "ရက်စွဲ ရွေးပါ",
+  unavailableTitle: "အွန်လိုင်း ရက်ချိန်း လက်မခံသေးပါ",
+  unavailableBody: "ဤဆေးခန်းသည် ယခု အွန်လိုင်း ရက်ချိန်း လက်မခံသေးပါ။ တိုက်ရိုက် ဆက်သွယ်ပါ။",
 };
 
 export const MESSAGES: Record<Locale, typeof en> = { en, my };

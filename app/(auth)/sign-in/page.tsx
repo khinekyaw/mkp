@@ -9,11 +9,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Spinner } from "@/components/ui/misc";
 import { signIn } from "@/lib/auth-client";
 import { useSiteCopy } from "@/components/i18n/site-locale";
-import { AuthCard, TextLink } from "../auth-form";
-
-function safeNext(value: string | null) {
-  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/dashboard";
-}
+import { AuthCard, safeNext, TextLink } from "../auth-form";
 
 function SignInForm() {
   const { t } = useSiteCopy();
@@ -27,7 +23,7 @@ function SignInForm() {
     const form = new FormData(e.currentTarget);
     setPending(true);
     setError(null);
-    const { error } = await signIn.email({
+    const { data, error } = await signIn.email({
       email: String(form.get("email")),
       password: String(form.get("password")),
       // Where the fresh confirmation link lands if the email isn't verified yet.
@@ -44,6 +40,8 @@ function SignInForm() {
       );
       return;
     }
+    // Two-step verification on: the auth client is already on its way to /two-factor.
+    if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) return;
     router.replace(next);
     router.refresh();
   }
