@@ -60,6 +60,20 @@ export function verifyEmailEmail({ to, name, url }: { to: string; name: string; 
   };
 }
 
+/** Sign-up with an address that already has an account: point them to sign-in instead of failing silently. */
+export function existingAccountEmail({ to, name, signInUrl, resetUrl }: { to: string; name: string; signInUrl: string; resetUrl: string }): Email {
+  return {
+    to,
+    subject: "You already have an account",
+    text: `Hi ${name},\n\nSomeone (hopefully you) tried to create an account with this email, but you already have one.\n\nSign in: ${signInUrl}\nForgot your password? ${resetUrl}\n\nIf this wasn't you, you can ignore this email.`,
+    html: layout({
+      heading: "You already have an account",
+      body: `<p>Hi ${esc(name)}, someone (hopefully you) tried to create an account with this email, but you already have one. <a href="${esc(resetUrl)}">Forgot your password?</a></p><p>If this wasn't you, you can ignore this email.</p>`,
+      cta: { label: "Sign in", url: signInUrl },
+    }),
+  };
+}
+
 export type BookingEmailData = {
   businessName: string;
   businessPhone?: string | null;
