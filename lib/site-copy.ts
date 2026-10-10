@@ -1,3 +1,4 @@
+import { adminEn, adminMy } from "./copy/admin";
 import { dashEn, dashMy } from "./copy/dashboard";
 import type { Locale } from "./i18n";
 
@@ -8,6 +9,7 @@ import type { Locale } from "./i18n";
 
 const en = {
   dash: dashEn,
+  admin: adminEn,
   nav: {
     brandMatching: "Brand matching",
     features: "Features",
@@ -17,7 +19,8 @@ const en = {
     openDashboard: "Open dashboard",
     language: "Language",
   },
-  footer: { madeFor: "Made for clinics in Myanmar", samplePage: "Sample booking page", signIn: "Sign in" },
+  footer: { madeFor: "Made for clinics in Myanmar", samplePage: "Sample booking page", signIn: "Sign in", privacy: "Privacy", terms: "Terms" },
+  legal: { updated: (date: string) => `Last updated ${date}` },
   hero: {
     eyebrow: "Simple. Branded. Yours.",
     // The accent is set in green with a hand-drawn underline; before/after
@@ -137,6 +140,7 @@ const en = {
       failed: "Couldn't create your account.",
       submit: "Create account",
       haveAccount: "Already have an account?",
+      agree: { before: "By creating an account you agree to the", terms: "Terms", and: "and", privacy: "Privacy Policy", after: "." },
       checkTitle: "Check your email",
       checkBody: (email: string) => `We've sent a confirmation link to ${email}. Open it to finish setting up your clinic.`,
       signIn: "Sign in",
@@ -151,6 +155,17 @@ const en = {
       newPassword: "New password",
       failed: "Couldn't reset your password.",
       submit: "Set new password",
+    },
+    twoFactor: {
+      title: "Two-step verification",
+      description: "Enter the 6-digit code from your authenticator app.",
+      backupDescription: "Enter one of the backup codes you saved.",
+      code: "Code",
+      useBackup: "Use a backup code",
+      useApp: "Use the authenticator app",
+      trust: "Trust this device for 30 days",
+      submit: "Verify",
+      wrong: "That code isn't right. Try again.",
     },
   },
   onboarding: {
@@ -186,6 +201,7 @@ export type SiteCopy = typeof en;
 
 const my: SiteCopy = {
   dash: dashMy,
+  admin: adminMy,
   nav: {
     brandMatching: "အမှတ်တံဆိပ်နှင့် ကိုက်ညီမှု",
     features: "လုပ်ဆောင်ချက်များ",
@@ -195,7 +211,8 @@ const my: SiteCopy = {
     openDashboard: "ဒက်ရှ်ဘုတ် ဖွင့်ရန်",
     language: "ဘာသာစကား",
   },
-  footer: { madeFor: "မြန်မာနိုင်ငံရှိ ဆေးခန်းများအတွက်", samplePage: "နမူနာ ဘိုကင်စာမျက်နှာ", signIn: "အကောင့်ဝင်ရန်" },
+  footer: { madeFor: "မြန်မာနိုင်ငံရှိ ဆေးခန်းများအတွက်", samplePage: "နမူနာ ဘိုကင်စာမျက်နှာ", signIn: "အကောင့်ဝင်ရန်", privacy: "ကိုယ်ရေးအချက်အလက်", terms: "စည်းမျဉ်းများ" },
+  legal: { updated: (date: string) => `နောက်ဆုံး ပြင်ဆင်ချိန် ${date}` },
   hero: {
     eyebrow: "ရိုးရှင်း။ သင့်ပုံစံ။ သင့်ကိုယ်ပိုင်။",
     title: { before: "", accent: "သင့်ဆေးခန်းနှင့် လိုက်ဖက်သော", after: "အွန်လိုင်း ရက်ချိန်းယူစနစ်" },
@@ -314,6 +331,7 @@ const my: SiteCopy = {
       failed: "အကောင့် ဖွင့်၍ မရပါ။",
       submit: "အကောင့် ဖွင့်ရန်",
       haveAccount: "အကောင့် ရှိပြီးသားလား။",
+      agree: { before: "အကောင့်ဖွင့်ခြင်းဖြင့်", terms: "စည်းမျဉ်းများ", and: "နှင့်", privacy: "ကိုယ်ရေးအချက်အလက် မူဝါဒ", after: " ကို သဘောတူပါသည်။" },
       checkTitle: "သင့်အီးမေးလ်ကို စစ်ကြည့်ပါ",
       checkBody: (email: string) => `${email} သို့ အတည်ပြုလင့်ခ် ပို့ထားပါသည်။ ဆေးခန်း စတင်စီစဉ်ရန် ထိုလင့်ခ်ကို ဖွင့်ပါ။`,
       signIn: "အကောင့်ဝင်ရန်",
@@ -328,6 +346,17 @@ const my: SiteCopy = {
       newPassword: "စကားဝှက်အသစ်",
       failed: "စကားဝှက် ပြန်သတ်မှတ်၍ မရပါ။",
       submit: "စကားဝှက်အသစ် သတ်မှတ်ရန်",
+    },
+    twoFactor: {
+      title: "နှစ်ဆင့် အတည်ပြုခြင်း",
+      description: "authenticator app မှ ဂဏန်း ၆ လုံး ကုဒ်ကို ထည့်ပါ။",
+      backupDescription: "သိမ်းထားသော အရန်ကုဒ် တစ်ခုကို ထည့်ပါ။",
+      code: "ကုဒ်",
+      useBackup: "အရန်ကုဒ် သုံးရန်",
+      useApp: "authenticator app သုံးရန်",
+      trust: "ဤစက်ကို ရက် ၃၀ ယုံကြည်ရန်",
+      submit: "အတည်ပြုရန်",
+      wrong: "ကုဒ် မမှန်ပါ။ ထပ်စမ်းပါ။",
     },
   },
   onboarding: {

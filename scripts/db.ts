@@ -4,6 +4,7 @@
  *   pnpm db:setup     migrate, then seed the demo clinic if the database is empty
  *   pnpm db:seed      (re)create the demo clinic
  *   pnpm db:reset     wipe the local PGlite database and set it up again
+ *   pnpm admin:grant <email>   make an existing account a platform (super) admin
  *
  * Local PGlite allows one process at a time: stop `next dev` before running these
  * (`pnpm dev` runs db:setup for you).
@@ -201,8 +202,21 @@ async function seed() {
   console.log(`  sign in: ${DEMO.email} (password in scripts/db.ts)`);
 }
 
+/** Bootstraps the first super-admin; after that, admins grant each other from /admin/users. */
+async function grantAdmin(email: string | undefined) {
+  if (!email) throw new Error("Usage: pnpm admin:grant <email>");
+  const [user] = await db
+    .update(schema.user)
+    .set({ role: "admin" })
+    .where(eq(schema.user.email, email.trim().toLowerCase()))
+    .returning({ email: schema.user.email });
+  if (!user) throw new Error(`No account with email ${email}. Sign up first.`);
+  console.log(`✓ ${user.email} is now a platform admin (sign in and open /admin)`);
+}
+
 async function main() {
   const cmd = process.argv[2] ?? "setup";
+  if (cmd === "grant-admin") return grantAdmin(process.argv[3]);
   if (cmd === "reset") {
     if (!isPglite()) throw new Error("db:reset only wipes the local PGlite database. Drop your Postgres database manually.");
     await rm(PGLITE_DIR, { recursive: true, force: true });

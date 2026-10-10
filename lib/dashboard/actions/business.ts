@@ -5,6 +5,7 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { fieldErrors, type ActionState } from "../../actions";
+import { audit, userActor } from "../../audit";
 import { requireBusiness } from "../../business/access";
 import { isSlugAvailable } from "../../business/create";
 import { businessSettingsSchema, VERTICALS } from "../../business/settings";
@@ -107,4 +108,18 @@ export async function saveBookingRulesAction(slug: string, _: ActionState, form:
     .where(eq(schema.business.id, business.id));
   refresh();
   return { ok: true, message: t.dash.msg.rulesSaved };
+}
+
+/** Owner deletes the clinic: offline now, purged by the daily job after the grace period. */
+export async function deleteBusinessAction(slug: string, _: ActionState, form: FormData): Promise<ActionState> {
+  const [{ business, user }, { t }] = await Promise.all([requireBusiness(slug, "owner"), getSiteCopy()]);
+  if (String(form.get("confirm") ?? "").trim() !== business.slug) {
+    return { ok: false, error: t.dash.msg.typeSlugToConfirm, fields: { confirm: [t.dash.msg.typeSlugToConfirm] } };
+  }
+  await db
+    .update(schema.business)
+    .set({ deletedAt: new Date(), status: "suspended" })
+    .where(eq(schema.business.id, business.id));
+  await audit({ businessId: business.id, actor: userActor(user), action: "business.deleted" });
+  redirect("/dashboard");
 }

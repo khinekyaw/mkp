@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   index,
   integer,
@@ -34,6 +35,12 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
+  twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  /** Platform role (Better Auth admin plugin): "admin" = super-admin. Unrelated to clinic membership roles. */
+  role: text("role"),
+  banned: boolean("banned").default(false),
+  banReason: text("ban_reason"),
+  banExpires: timestamp("ban_expires", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -46,6 +53,8 @@ export const session = pgTable(
     token: text("token").notNull().unique(),
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
+    /** Set when a platform admin is impersonating this user. */
+    impersonatedBy: text("impersonated_by"),
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
@@ -90,6 +99,77 @@ export const verification = pgTable(
   (t) => [index("verification_identifier_idx").on(t.identifier)],
 );
 
+export const twoFactor = pgTable(
+  "two_factor",
+  {
+    id: text("id").primaryKey(),
+    secret: text("secret").notNull(),
+    backupCodes: text("backup_codes").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    verified: boolean("verified").default(true),
+    failedVerificationCount: integer("failed_verification_count").default(0),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  },
+  (t) => [index("two_factor_user_idx").on(t.userId), index("two_factor_secret_idx").on(t.secret)],
+);
+
+/** Better Auth's own limiter (sign-in, sign-up, reset), shared across server instances. */
+export const rateLimit = pgTable("rate_limit", {
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  count: integer("count").notNull(),
+  lastRequest: bigint("last_request", { mode: "number" }).notNull(),
+});
+
+// ---------------------------------------------------------------------------
+// Platform infrastructure
+// ---------------------------------------------------------------------------
+
+/** Fixed-window counters for our own limits (public API, theme detection), shared across instances. */
+export const throttle = pgTable("throttle", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull(),
+  resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
+});
+
+/** Theme detection results per site, so repeat detections don't refetch the site or call the AI model. */
+export const themeCache = pgTable("theme_cache", {
+  key: text("key").primaryKey(),
+  result: jsonb("result").notNull(),
+  createdAt: createdAt(),
+});
+
+export const jobStatus = pgEnum("job_status", ["pending", "running", "done", "failed"]);
+
+/** Background work (emails, reminders, purges) with retries; drained by the cron route. */
+export const job = pgTable(
+  "job",
+  {
+    id: id(),
+    type: text("type").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    /** Optional idempotency key: enqueueing the same key again replaces the pending job. */
+    dedupeKey: text("dedupe_key").unique(),
+    runAt: timestamp("run_at", { withTimezone: true }).notNull().defaultNow(),
+    status: jobStatus("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("job_due_idx").on(t.status, t.runAt)],
+);
+
+/** Platform-wide switches set from the super-admin (announcement banner, maintenance mode). */
+export const platformSetting = pgTable("platform_setting", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedAt: updatedAt(),
+});
+
 // ---------------------------------------------------------------------------
 // Tenancy
 // ---------------------------------------------------------------------------
@@ -110,6 +190,10 @@ export const business = pgTable("business", {
   theme: jsonb("theme").$type<Theme>(),
   settings: jsonb("settings").$type<BusinessSettings>().notNull(),
   status: businessStatus("status").notNull().default("active"),
+  plan: text("plan").notNull().default("trial"),
+  trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
+  /** Owner asked to delete the clinic; data is purged after a grace period. */
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -248,7 +332,13 @@ export const customer = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex("customer_business_phone_idx").on(t.businessId, t.phone)],
+  (t) => [
+    uniqueIndex("customer_business_phone_idx").on(t.businessId, t.phone),
+    // Substring search (`ilike '%term%'`) in the customer list.
+    index("customer_name_trgm_idx").using("gin", sql`${t.name} gin_trgm_ops`),
+    index("customer_phone_trgm_idx").using("gin", sql`${t.phone} gin_trgm_ops`),
+    index("customer_email_trgm_idx").using("gin", sql`${t.email} gin_trgm_ops`),
+  ],
 );
 
 export const bookingStatus = pgEnum("booking_status", ["pending", "confirmed", "cancelled", "completed", "no_show"]);
@@ -285,6 +375,8 @@ export const booking = pgTable(
     manageToken: text("manage_token").notNull(),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     cancelReason: text("cancel_reason"),
+    /** When the patient agreed to the privacy notice (online bookings only). */
+    consentAt: timestamp("consent_at", { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -295,7 +387,77 @@ export const booking = pgTable(
     index("booking_active_idx")
       .on(t.providerId, t.startsAt)
       .where(sql`${t.status} in ('pending', 'confirmed')`),
+    // Substring search in the appointments list.
+    index("booking_customer_name_trgm_idx").using("gin", sql`${t.customerName} gin_trgm_ops`),
+    index("booking_customer_phone_trgm_idx").using("gin", sql`${t.customerPhone} gin_trgm_ops`),
   ],
+);
+
+/** Pending team invite; the token travels only in the emailed link. */
+export const invitation = pgTable(
+  "invitation",
+  {
+    id: id(),
+    businessId: text("business_id")
+      .notNull()
+      .references(() => business.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    role: memberRole("role").notNull().default("staff"),
+    token: text("token").notNull().unique(),
+    invitedBy: text("invited_by").references(() => user.id, { onDelete: "set null" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("invitation_business_idx").on(t.businessId)],
+);
+
+export const auditActor = pgEnum("audit_actor", ["user", "patient", "admin", "system"]);
+
+/**
+ * Who changed what. Clinic events carry a business id; platform-admin actions
+ * (including impersonation, with the stated reason in `data`) use actor "admin".
+ */
+export const auditEvent = pgTable(
+  "audit_event",
+  {
+    id: id(),
+    businessId: text("business_id").references(() => business.id, { onDelete: "cascade" }),
+    actorType: auditActor("actor_type").notNull(),
+    actorId: text("actor_id"),
+    actorName: text("actor_name"),
+    action: text("action").notNull(),
+    targetType: text("target_type"),
+    targetId: text("target_id"),
+    data: jsonb("data").$type<Record<string, unknown>>(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("audit_business_time_idx").on(t.businessId, t.createdAt),
+    index("audit_target_idx").on(t.targetType, t.targetId),
+    index("audit_actor_time_idx").on(t.actorType, t.createdAt),
+  ],
+);
+
+/** Manually recorded subscription payments (bank/KBZPay/Wave transfers) until online billing exists. */
+export const payment = pgTable(
+  "payment",
+  {
+    id: id(),
+    businessId: text("business_id")
+      .notNull()
+      .references(() => business.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    currency: text("currency").notNull().default("MMK"),
+    method: text("method").notNull(),
+    reference: text("reference"),
+    /** The plan is paid up to this moment. */
+    paidUntil: timestamp("paid_until", { withTimezone: true }).notNull(),
+    note: text("note"),
+    recordedBy: text("recorded_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("payment_business_idx").on(t.businessId, t.createdAt)],
 );
 
 // ---------------------------------------------------------------------------
@@ -354,4 +516,6 @@ export type Customer = typeof customer.$inferSelect;
 export type Booking = typeof booking.$inferSelect;
 export type BookingStatus = (typeof bookingStatus.enumValues)[number];
 export type MemberRole = (typeof memberRole.enumValues)[number];
+export type Job = typeof job.$inferSelect;
+export type AuditActor = (typeof auditActor.enumValues)[number];
 export type BusinessStatus = (typeof businessStatus.enumValues)[number];

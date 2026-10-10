@@ -242,3 +242,37 @@ export async function getBookingRow(businessId: string, bookingId: string) {
     .limit(1);
   return row ?? null;
 }
+
+/** Members and still-valid pending invites, for the Team page. */
+export async function listTeam(businessId: string) {
+  const [members, invites] = await Promise.all([
+    db
+      .select({
+        id: schema.membership.id,
+        role: schema.membership.role,
+        userId: schema.user.id,
+        name: schema.user.name,
+        email: schema.user.email,
+      })
+      .from(schema.membership)
+      .innerJoin(schema.user, eq(schema.user.id, schema.membership.userId))
+      .where(eq(schema.membership.businessId, businessId))
+      .orderBy(asc(schema.membership.createdAt)),
+    db
+      .select({ id: schema.invitation.id, email: schema.invitation.email, role: schema.invitation.role, expiresAt: schema.invitation.expiresAt })
+      .from(schema.invitation)
+      .where(and(eq(schema.invitation.businessId, businessId), isNull(schema.invitation.acceptedAt), gte(schema.invitation.expiresAt, new Date())))
+      .orderBy(asc(schema.invitation.createdAt)),
+  ]);
+  return { members, invites };
+}
+
+/** Recent audit events for a clinic, newest first. */
+export async function listActivity(businessId: string, { limit = 100 } = {}) {
+  return db
+    .select()
+    .from(schema.auditEvent)
+    .where(eq(schema.auditEvent.businessId, businessId))
+    .orderBy(desc(schema.auditEvent.createdAt))
+    .limit(limit);
+}

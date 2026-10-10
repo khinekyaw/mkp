@@ -8,7 +8,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Spinner } from "@/components/ui/misc";
 import { signUp } from "@/lib/auth-client";
 import { useSiteCopy } from "@/components/i18n/site-locale";
-import { AuthCard, TextLink } from "../auth-form";
+import { AuthCard, safeNext, TextLink } from "../auth-form";
 
 export default function SignUpPage() {
   const { t } = useSiteCopy();
@@ -27,7 +27,8 @@ export default function SignUpPage() {
       name: String(form.get("name")).trim(),
       email,
       password: String(form.get("password")),
-      callbackURL: "/onboarding",
+      // Where the verification link lands: onboarding, or back to e.g. a team invite.
+      callbackURL: safeNext(new URLSearchParams(window.location.search).get("next"), "/onboarding"),
     });
     setPending(false);
     if (error) {
@@ -78,6 +79,11 @@ export default function SignUpPage() {
           {pending ? <Spinner /> : null}
           {t.auth.signUp.submit}
         </Button>
+        <p className="text-xs text-muted-foreground">
+          {t.auth.signUp.agree.before} <TextLink href="/terms">{t.auth.signUp.agree.terms}</TextLink> {t.auth.signUp.agree.and}{" "}
+          <TextLink href="/privacy">{t.auth.signUp.agree.privacy}</TextLink>
+          {t.auth.signUp.agree.after}
+        </p>
       </form>
     </AuthCard>
   );

@@ -39,6 +39,19 @@ export default async function SharePage({ params }: PageProps<"/dashboard/[biz]/
           </Card>
           <Card>
             <CardHeader>
+              <CardTitle>{sh.facebook}</CardTitle>
+              <CardDescription>{sh.facebookBody}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ol className="grid list-decimal gap-1.5 pl-5 text-sm">
+                {sh.facebookSteps.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
               <CardTitle>{sh.website}</CardTitle>
               <CardDescription>{sh.websiteBody}</CardDescription>
             </CardHeader>

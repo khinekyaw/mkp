@@ -1,6 +1,7 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { db, schema } from "../db";
 import type { Business } from "../db/schema";
+import { getPlatformSettings } from "../platform";
 import { DEFAULT_THEME, type Theme } from "../theme";
 import { readSettings, type Vertical } from "./settings";
 
@@ -39,8 +40,30 @@ const isPublic = eq(schema.business.status, "active");
 
 /** The full row behind the public API (availability, booking), or null if missing or suspended. */
 export async function findPublicBusinessRow(id: string): Promise<Business | null> {
+  if ((await getPlatformSettings()).maintenance) return null;
   const [biz] = await db.select().from(schema.business).where(and(eq(schema.business.id, id), isPublic)).limit(1);
   return biz ?? null;
+}
+
+/**
+ * For a suspended (not deleted) business: just enough to tell patients how to
+ * reach the clinic instead of showing a dead page. Null otherwise.
+ */
+export async function getUnavailableNotice(by: { id: string } | { slug: string }) {
+  // Platform maintenance pauses every clinic, not only suspended ones.
+  const maintenance = (await getPlatformSettings()).maintenance;
+  const [biz] = await db
+    .select({ name: schema.business.name, phone: schema.business.phone, theme: schema.business.theme })
+    .from(schema.business)
+    .where(
+      and(
+        "id" in by ? eq(schema.business.id, by.id) : eq(schema.business.slug, by.slug),
+        maintenance ? undefined : eq(schema.business.status, "suspended"),
+        isNull(schema.business.deletedAt),
+      ),
+    )
+    .limit(1);
+  return biz ? { name: biz.name, phone: biz.phone, theme: { ...(biz.theme ?? DEFAULT_THEME), name: biz.name } } : null;
 }
 
 /** `includeSuspended` is for the business's own dashboard (e.g. the studio preview), never a public surface. */
@@ -48,6 +71,7 @@ export async function getPublicBusiness(
   by: { id: string } | { slug: string },
   { includeSuspended = false } = {},
 ): Promise<PublicBusiness | null> {
+  if (!includeSuspended && (await getPlatformSettings()).maintenance) return null;
   const [biz] = await db
     .select()
     .from(schema.business)

@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page";
 import { requireBusiness } from "@/lib/business/access";
+import { DELETE_GRACE_DAYS } from "@/lib/business/settings";
 import { getSiteCopy } from "@/lib/site-locale";
 import { appUrl } from "@/lib/url";
+import { DataControls } from "./data-controls";
 import { ProfileSettings, RulesSettings } from "./forms";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -13,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SettingsPage({ params }: PageProps<"/dashboard/[biz]/settings">) {
   const { biz } = await params;
-  const [{ business }, { t }] = await Promise.all([requireBusiness(biz, "admin"), getSiteCopy()]);
+  const [{ business, role }, { t }] = await Promise.all([requireBusiness(biz, "admin"), getSiteCopy()]);
   const se = t.dash.settings;
   return (
     <>
@@ -50,6 +52,17 @@ export default async function SettingsPage({ params }: PageProps<"/dashboard/[bi
             <RulesSettings slug={business.slug} settings={business.settings} />
           </CardContent>
         </Card>
+        {role === "owner" ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t.dash.data.title}</CardTitle>
+              <CardDescription>{t.dash.data.body}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DataControls slug={business.slug} graceDays={DELETE_GRACE_DAYS} />
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </>
   );

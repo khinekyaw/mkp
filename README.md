@@ -90,6 +90,7 @@ No database install is needed: without `DATABASE_URL`, the app uses **PGlite** (
 | `pnpm db:migrate` | Apply migrations |
 | `pnpm db:seed` | Recreate the demo clinic |
 | `pnpm db:reset` | Wipe the local PGlite database and start fresh |
+| `pnpm admin:grant <email>` | Make an existing account a platform admin (then open `/admin`) |
 
 PGlite allows only one process at a time, so stop `pnpm dev` before running `db:*` scripts.
 
@@ -105,6 +106,17 @@ Copy `.env.example` to `.env.local`. Everything is optional locally.
 | `NEXT_PUBLIC_APP_URL` | Base URL for links in emails, embed snippets and QR codes |
 | `XAI_API_KEY` | Enables AI brand matching with xAI Grok (falls back to heuristics without it). `XAI_MODEL` overrides the default `grok-4.20-0309-non-reasoning` |
 | `RESEND_API_KEY`, `EMAIL_FROM` | Sends real email; without them emails are printed to the server console |
+| `CRON_SECRET` | Protects `/api/cron/jobs` (every 5 min) and `/api/cron/daily`; Vercel Cron sends it automatically |
+| `TRUSTED_IP_HEADER` | Header your edge sets to the client IP (e.g. `cf-connecting-ip`); see `.env.example` for the default |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile on the booking form |
+| `NEXT_PUBLIC_SUPPORT_URL`, `NEXT_PUBLIC_LEGAL_ENTITY`, `NEXT_PUBLIC_CONTACT_EMAIL` | Support link in the dashboard; names in the Terms and Privacy Policy |
+| `ERROR_WEBHOOK_URL` | Receives a short alert for every server error |
+
+`.env.example` lists every variable, including the rate-limit and AI budget knobs.
+
+### Background jobs
+
+Emails, reminders and cleanup go through a Postgres job queue (`lib/jobs`). Requests start due jobs right away; the cron routes in `vercel.json` drain retries and scheduled reminders. Locally, `curl localhost:3000/api/cron/jobs` runs them by hand.
 
 ### What's where
 
@@ -116,7 +128,12 @@ Copy `.env.example` to `.env.local`. Everything is optional locally.
 | `/dashboard/[biz]` | Team | Overview, calendar (day by doctor, week, month), appointments, customers, services, staff, hours & closures, appearance, share & embed, settings |
 | `/b/[slug]` | Patients | Hosted booking page, a shareable link for Facebook/Viber |
 | `/embed/[businessId]` + `public/embed.js` | Patients | Embeddable widget (`<script src="…/embed.js" data-business="…">`) |
-| `/manage/[bookingId]?t=…` | Patients | View or cancel (within the business's notice period) |
+| `/manage/[bookingId]?t=…` | Patients | View, reschedule or cancel (within the business's notice period) |
+| `/invite/[token]` | Team | Accept an invite to a clinic |
+| `/dashboard/[biz]/account` | Everyone | Name, email, password, two-step verification, delete account |
+| `/admin` | Platform admins | Clinics, users, billing, jobs, audit log, platform settings |
+| `/privacy`, `/terms` | Everyone | Privacy Policy and Terms (EN/MY) |
+| `/api/health`, `/api/cron/[task]` | Ops | Uptime check; scheduled job runner |
 | `/api/public/b/[businessId]/…` | Widget | Public profile, availability, create booking (rate-limited) |
 | `/demo.html` | Dev | A sample clinic website embedding the seeded demo business |
 

@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["sin1"],
+  "crons": [
+    { "path": "/api/cron/jobs", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/daily", "schedule": "30 20 * * *" }
+  ]
+}

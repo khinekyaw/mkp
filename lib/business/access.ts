@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
@@ -29,7 +29,8 @@ export const listMemberships = cache(async (userId: string) =>
     })
     .from(schema.membership)
     .innerJoin(schema.business, eq(schema.business.id, schema.membership.businessId))
-    .where(eq(schema.membership.userId, userId))
+    // A clinic its owner deleted is gone from the dashboard, though its data waits out the grace period.
+    .where(and(eq(schema.membership.userId, userId), isNull(schema.business.deletedAt)))
     .orderBy(asc(schema.membership.createdAt)),
 );
 
@@ -38,7 +39,7 @@ const loadMembership = cache(async (userId: string, slug: string) => {
     .select({ business: schema.business, role: schema.membership.role })
     .from(schema.membership)
     .innerJoin(schema.business, eq(schema.business.id, schema.membership.businessId))
-    .where(and(eq(schema.membership.userId, userId), eq(schema.business.slug, slug)))
+    .where(and(eq(schema.membership.userId, userId), eq(schema.business.slug, slug), isNull(schema.business.deletedAt)))
     .limit(1);
   return row ?? null;
 });
