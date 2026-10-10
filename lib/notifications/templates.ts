@@ -1,3 +1,4 @@
+import { patientDate, patientTime } from "../format";
 import type { Email } from "./mailer";
 
 type Locale = "en" | "my";
@@ -28,10 +29,7 @@ function rows(items: [string, string | null | undefined][]) {
 }
 
 export function formatWhen(date: Date, timezone: string, locale: Locale) {
-  const tag = locale === "my" ? "my-MM" : "en-US";
-  const day = new Intl.DateTimeFormat(tag, { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: timezone }).format(date);
-  const time = new Intl.DateTimeFormat(tag, { hour: "numeric", minute: "2-digit", timeZone: timezone }).format(date);
-  return `${day}, ${time}`;
+  return `${patientDate(date, timezone, locale, true)}${locale === "my" ? "၊" : ","} ${patientTime(date, timezone, locale)}`;
 }
 
 export function passwordResetEmail({ to, name, url }: { to: string; name: string; url: string }): Email {

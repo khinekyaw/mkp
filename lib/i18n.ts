@@ -12,6 +12,14 @@ export function toLocale(value: unknown, fallback: Locale = "en"): Locale {
 export const INTL_LOCALE: Record<Locale, string> = { en: "en-US", my: "my-MM" };
 export const LOCALE_LABEL: Record<Locale, string> = { en: "EN", my: "မြန်မာ" };
 
+const MY_DIGITS = "၀၁၂၃၄၅၆၇၈၉";
+
+/** Writes numbers in Burmese digits for Burmese patients ("10" → "၁၀"). */
+export function localDigits(value: number | string, locale: Locale) {
+  const s = String(value);
+  return locale === "my" ? s.replace(/[0-9]/g, (d) => MY_DIGITS[Number(d)]) : s;
+}
+
 const en = {
   title: "Book an appointment",
   service: "Service",
@@ -85,7 +93,7 @@ const my: typeof en = {
   loadError: "ရနိုင်သော အချိန်များကို ဖွင့်၍ မရပါ။",
   retry: "ထပ်စမ်းမည်",
   timesIn: "အချိန်ဇုန်",
-  minutes: (n: number) => `${n} မိနစ်`,
+  minutes: (n: number) => `${localDigits(n, "my")} မိနစ်`,
   earlier: "အရင်ရက်များ",
   later: "နောက်ရက်များ",
   yourAppointment: "သင့်ရက်ချိန်း",
@@ -95,7 +103,7 @@ const my: typeof en = {
   keep: "မပယ်ဖျက်ပါ",
   yesCancel: "ပယ်ဖျက်မည်",
   cancelled: "သင့်ရက်ချိန်းကို ပယ်ဖျက်ပြီးပါပြီ။",
-  cannotCancel: (h: number) => `ရက်ချိန်းမတိုင်မီ ${h} နာရီအတွင်း အွန်လိုင်းမှ ပယ်ဖျက်၍ မရပါ။ ဖုန်းဖြင့် ဆက်သွယ်ပါ။`,
+  cannotCancel: (h: number) => `ရက်ချိန်းမတိုင်မီ ${localDigits(h, "my")} နာရီအတွင်း အွန်လိုင်းမှ ပယ်ဖျက်၍ မရပါ။ ဖုန်းဖြင့် ဆက်သွယ်ပါ။`,
   call: "ဖုန်းခေါ်ရန်",
   bookAgain: "ထပ်မံ ရက်ချိန်းယူရန်",
   notFound: "ထိုရက်ချိန်းကို ရှာမတွေ့ပါ။",
@@ -105,6 +113,9 @@ export const MESSAGES: Record<Locale, typeof en> = { en, my };
 export type Messages = typeof en;
 
 export function formatPrice(amount: number, currency: string, locale: Locale) {
+  // Hand-composed: browsers ship different (or no) Burmese number data, which
+  // breaks hydration. Kyat is written the way it's said: "၁၅,၀၀၀ ကျပ်".
+  if (locale === "my") return `${localDigits(amount.toLocaleString("en-US", { maximumFractionDigits: 0 }), "my")} ${currency === "MMK" ? "ကျပ်" : currency}`;
   try {
     return new Intl.NumberFormat(INTL_LOCALE[locale], { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
   } catch {
