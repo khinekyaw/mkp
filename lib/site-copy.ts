@@ -116,6 +116,8 @@ const en = {
     email: "Email",
     password: "Password",
     passwordHint: "At least 8 characters.",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
     backToSignIn: "Back to sign in",
     invalidLink: "This link is invalid or expired.",
     signIn: {
@@ -291,6 +293,8 @@ const my: SiteCopy = {
     email: "အီးမေးလ်",
     password: "စကားဝှက်",
     passwordHint: "အနည်းဆုံး စာလုံး ၈ လုံး။",
+    showPassword: "စကားဝှက် ပြရန်",
+    hidePassword: "စကားဝှက် ဖျောက်ရန်",
     backToSignIn: "အကောင့်ဝင်ရန် စာမျက်နှာသို့",
     invalidLink: "ဤလင့်ခ် မမှန်ကန်ပါ သို့မဟုတ် သက်တမ်းကုန်သွားပါပြီ။",
     signIn: {

@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Spinner } from "@/components/ui/misc";
 import { signUp } from "@/lib/auth-client";
 import { useSiteCopy } from "@/components/i18n/site-locale";
@@ -62,7 +63,15 @@ export default function SignUpPage() {
           <Input id="email" name="email" type="email" autoComplete="email" required />
         </Field>
         <Field label={t.auth.password} htmlFor="password" hint={t.auth.passwordHint} required>
-          <Input id="password" name="password" type="password" autoComplete="new-password" required minLength={8} />
+          <PasswordInput
+            id="password"
+            name="password"
+            autoComplete="new-password"
+            required
+            minLength={8}
+            showLabel={t.auth.showPassword}
+            hideLabel={t.auth.hidePassword}
+          />
         </Field>
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
         <Button type="submit" disabled={pending}>
