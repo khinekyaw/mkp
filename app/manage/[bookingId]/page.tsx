@@ -6,8 +6,10 @@ import { readSettings } from "@/lib/business/settings";
 import { constantTimeEqual } from "@/lib/crypto";
 import { patientDate, patientTime } from "@/lib/format";
 import { MESSAGES, toLocale } from "@/lib/i18n";
+import { dateInZone } from "@/lib/scheduling/time";
 import { DEFAULT_THEME } from "@/lib/theme";
 import { CancelBooking } from "./cancel-booking";
+import { RescheduleBooking } from "./reschedule-booking";
 
 export const metadata: Metadata = { title: "Your appointment", robots: { index: false } };
 
@@ -72,7 +74,20 @@ export default async function ManagePage({ params, searchParams }: PageProps<"/m
 
         {booking.status === "pending" || booking.status === "confirmed" ? (
           canCustomerCancel(details) ? (
-            <CancelBooking bookingId={booking.id} token={token} locale={locale} />
+            <div className="grid gap-3">
+              {business.status === "active" ? (
+                <RescheduleBooking
+                  bookingId={booking.id}
+                  token={token}
+                  locale={locale}
+                  timezone={business.timezone}
+                  today={dateInZone(new Date(), business.timezone)}
+                  horizonDays={settings.horizonDays}
+                  initialDate={dateInZone(booking.startsAt, business.timezone)}
+                />
+              ) : null}
+              <CancelBooking bookingId={booking.id} token={token} locale={locale} />
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground">{t.cannotCancel(settings.cancelNoticeHours)}</p>
           )

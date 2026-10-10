@@ -4,7 +4,7 @@ import { findPublicBusinessRow } from "@/lib/business/public";
 import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export async function GET(request: Request, ctx: RouteContext<"/api/public/b/[businessId]/availability">) {
-  const limited = rateLimit(`avail:${clientIp(request)}`, { limit: 120, windowMs: 60_000 });
+  const limited = await rateLimit(`avail:${clientIp(request)}`, { limit: 120, windowMs: 60_000 });
   if (!limited.ok) return tooManyRequests(limited.retryAfter);
 
   const { businessId } = await ctx.params;

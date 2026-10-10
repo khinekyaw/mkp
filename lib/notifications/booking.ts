@@ -2,8 +2,11 @@ import { and, eq, inArray } from "drizzle-orm";
 import { getBookingDetails, type BookingDetails } from "../bookings/service";
 import { db, schema } from "../db";
 import { appUrl } from "../url";
-import { sendSafely } from "./mailer";
+import { getMailer, type Email } from "./mailer";
 import { businessBookingEmail, customerBookingEmail, type BookingEmailData } from "./templates";
+
+// These run inside queued jobs: a failed send throws so the job retries.
+const send = (email: Email) => getMailer().send(email);
 
 async function staffEmails(businessId: string, businessEmail: string | null) {
   const rows = await db
@@ -41,10 +44,10 @@ export async function notifyBookingCreated(bookingId: string, { notifyStaff = tr
   if (!d) return;
   const data = emailData(d);
   const jobs: Promise<void>[] = [];
-  if (d.booking.customerEmail) jobs.push(sendSafely(customerBookingEmail({ ...data, to: d.booking.customerEmail })));
+  if (d.booking.customerEmail) jobs.push(send(customerBookingEmail({ ...data, to: d.booking.customerEmail })));
   if (notifyStaff) {
     const to = await staffEmails(d.business.id, d.business.email);
-    if (to.length) jobs.push(sendSafely(businessBookingEmail({ ...data, to, event: "created" })));
+    if (to.length) jobs.push(send(businessBookingEmail({ ...data, to, event: "created" })));
   }
   await Promise.all(jobs);
 }
@@ -53,7 +56,27 @@ export async function notifyBookingCreated(bookingId: string, { notifyStaff = tr
 export async function notifyCustomerOfStatus(bookingId: string) {
   const d = await getBookingDetails(bookingId);
   if (!d?.booking.customerEmail) return;
-  await sendSafely(customerBookingEmail({ ...emailData(d), to: d.booking.customerEmail }));
+  await send(customerBookingEmail({ ...emailData(d), to: d.booking.customerEmail }));
+}
+
+/** Reminder before the visit; skipped if the booking was cancelled or moved since it was scheduled. */
+export async function notifyReminder(bookingId: string, expectedStart: string) {
+  const d = await getBookingDetails(bookingId);
+  if (!d?.booking.customerEmail) return;
+  if (!["pending", "confirmed"].includes(d.booking.status) || d.booking.startsAt.toISOString() !== expectedStart) return;
+  await send(customerBookingEmail({ ...emailData(d), to: d.booking.customerEmail, kind: "reminder" }));
+}
+
+/** Appointment moved: the patient gets the new time; the clinic hears about it when the patient moved it. */
+export async function notifyRescheduled(bookingId: string, { byCustomer }: { byCustomer: boolean }) {
+  const d = await getBookingDetails(bookingId);
+  if (!d) return;
+  const data = emailData(d);
+  const to = byCustomer ? await staffEmails(d.business.id, d.business.email) : [];
+  await Promise.all([
+    to.length ? send(businessBookingEmail({ ...data, to, event: "rescheduled" })) : null,
+    d.booking.customerEmail ? send(customerBookingEmail({ ...data, to: d.booking.customerEmail, kind: "rescheduled" })) : null,
+  ]);
 }
 
 /** Patient cancelled online: tell the clinic. */
@@ -63,7 +86,7 @@ export async function notifyCancelledByCustomer(bookingId: string) {
   const data = emailData(d);
   const to = await staffEmails(d.business.id, d.business.email);
   await Promise.all([
-    to.length ? sendSafely(businessBookingEmail({ ...data, to, event: "cancelled" })) : null,
-    d.booking.customerEmail ? sendSafely(customerBookingEmail({ ...data, to: d.booking.customerEmail })) : null,
+    to.length ? send(businessBookingEmail({ ...data, to, event: "cancelled" })) : null,
+    d.booking.customerEmail ? send(customerBookingEmail({ ...data, to: d.booking.customerEmail })) : null,
   ]);
 }

@@ -38,3 +38,6 @@ export const PROVIDER_LABEL: Record<Vertical, { en: string; my: string }> = {
   spa: { en: "Therapist", my: "ကုထုံးပညာရှင်" },
   other: { en: "Staff", my: "ဝန်ထမ်း" },
 };
+
+/** Clinics deleted by their owner are kept this long in case it was a mistake. */
+export const DELETE_GRACE_DAYS = 30;

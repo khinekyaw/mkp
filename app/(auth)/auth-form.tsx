@@ -36,3 +36,8 @@ export function TextLink({ href, children }: { href: string; children: ReactNode
     </Link>
   );
 }
+
+/** A same-site path to continue to after auth, never an open redirect. */
+export function safeNext(value: string | null, fallback = "/dashboard") {
+  return value && value.startsWith("/") && !value.startsWith("//") ? value : fallback;
+}

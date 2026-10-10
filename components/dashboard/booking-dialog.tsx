@@ -13,6 +13,7 @@ import type { BookingRow } from "@/lib/dashboard/queries";
 import type { BookingStatus } from "@/lib/db/schema";
 import { fmtDate, fmtTime } from "@/lib/format";
 import { useSiteCopy } from "@/components/i18n/site-locale";
+import { ReschedulePanel } from "./reschedule-panel";
 import { StatusBadge } from "./status-badge";
 
 export function BookingDialog({
@@ -30,6 +31,7 @@ export function BookingDialog({
   const b = t.dash.booking;
   const [pending, startTransition] = useTransition();
   const [cancelling, setCancelling] = useState(false);
+  const [moving, setMoving] = useState(false);
   const [reason, setReason] = useState("");
 
   function update(status: BookingStatus, cancelReason?: string) {
@@ -51,7 +53,10 @@ export function BookingDialog({
     <Dialog
       open={!!booking}
       onOpenChange={(o) => {
-        if (!o) setCancelling(false);
+        if (!o) {
+          setCancelling(false);
+          setMoving(false);
+        }
         onOpenChange(o);
       }}
     >
@@ -107,7 +112,19 @@ export function BookingDialog({
             <UserRound className="size-4" /> {b.history}
           </Link>
 
-          {cancelling ? (
+          {moving ? (
+            <ReschedulePanel
+              slug={slug}
+              bookingId={booking.id}
+              startsAt={booking.startsAt}
+              timezone={timezone}
+              onCancel={() => setMoving(false)}
+              onDone={() => {
+                setMoving(false);
+                onOpenChange(false);
+              }}
+            />
+          ) : cancelling ? (
             <div className="grid gap-2 rounded-md border p-3">
               <p className="text-sm font-medium">{b.cancelQuestion}</p>
               <Input placeholder={b.reasonPlaceholder} value={reason} onChange={(e) => setReason(e.target.value)} />
@@ -143,9 +160,14 @@ export function BookingDialog({
                 </Button>
               ) : null}
               {isActive ? (
-                <Button variant="ghost" onClick={() => setCancelling(true)} disabled={pending} className="sm:ml-auto">
-                  {b.cancel}
-                </Button>
+                <>
+                  <Button variant="outline" onClick={() => setMoving(true)} disabled={pending}>
+                    {b.reschedule}
+                  </Button>
+                  <Button variant="ghost" onClick={() => setCancelling(true)} disabled={pending} className="sm:ml-auto">
+                    {b.cancel}
+                  </Button>
+                </>
               ) : null}
               {pending ? <Spinner className="self-center" /> : null}
             </div>

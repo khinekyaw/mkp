@@ -58,6 +58,12 @@ export default async function MarketingLayout({ children }: LayoutProps<"/">) {
               <Link href="/sign-in" className="hover:text-foreground">
                 {t.footer.signIn}
               </Link>
+              <Link href="/privacy" className="hover:text-foreground">
+                {t.footer.privacy}
+              </Link>
+              <Link href="/terms" className="hover:text-foreground">
+                {t.footer.terms}
+              </Link>
             </span>
           </div>
         </footer>

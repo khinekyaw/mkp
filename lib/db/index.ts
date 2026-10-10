@@ -1,5 +1,7 @@
+import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { PGlite } from "@electric-sql/pglite";
+import { pg_trgm } from "@electric-sql/pglite/contrib/pg_trgm";
 import { drizzle as drizzlePglite } from "drizzle-orm/pglite";
 import { drizzle as drizzlePostgres, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
@@ -17,12 +19,16 @@ export const PGLITE_DIR = path.join(process.cwd(), ".data", "pglite");
 function createDb(): Db {
   const url = process.env.DATABASE_URL;
   if (url) {
-    return drizzlePostgres(postgres(url, { max: 10, prepare: false }), { schema });
+    // Serverless runs many small instances: keep each pool tiny and point DATABASE_URL at a pooler (e.g. Neon's -pooler host).
+    const max = Number(process.env.DATABASE_POOL_MAX) || (process.env.VERCEL ? 3 : 10);
+    return drizzlePostgres(postgres(url, { max, prepare: false }), { schema });
   }
   // `next build` imports modules from parallel workers; never let them open the dev database.
   const dir = process.env.NEXT_PHASE === "phase-production-build" ? undefined : PGLITE_DIR;
+  // PGlite creates its own folder but not missing parents (a fresh clone has no .data/).
+  if (dir) mkdirSync(path.dirname(dir), { recursive: true });
   // Same query surface; typed as postgres-js so call sites stay driver-agnostic.
-  return drizzlePglite(new PGlite(dir), { schema }) as unknown as Db;
+  return drizzlePglite(new PGlite(dir, { extensions: { pg_trgm } }), { schema }) as unknown as Db;
 }
 
 // Cached on globalThis so dev hot reloads don't open a second connection/PGlite instance.

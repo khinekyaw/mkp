@@ -1,6 +1,9 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { APIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
+import { admin, twoFactor } from "better-auth/plugins";
+import { soleOwnedBusinesses } from "./business/ownership";
 import { db, schema } from "./db";
 import { sendSafely } from "./notifications/mailer";
 import { passwordResetEmail, verifyEmailEmail } from "./notifications/templates";
@@ -18,7 +21,14 @@ export const auth = betterAuth({
     (process.env.NODE_ENV !== "production" || isBuild ? "dev-only-secret-change-me-dev-only-secret" : undefined),
   database: drizzleAdapter(db, {
     provider: "pg",
-    schema: { user: schema.user, session: schema.session, account: schema.account, verification: schema.verification },
+    schema: {
+      user: schema.user,
+      session: schema.session,
+      account: schema.account,
+      verification: schema.verification,
+      twoFactor: schema.twoFactor,
+      rateLimit: schema.rateLimit,
+    },
   }),
   emailAndPassword: {
     enabled: true,
@@ -40,13 +50,49 @@ export const auth = betterAuth({
       await sendSafely(verifyEmailEmail({ to: user.email, name: user.name, url }));
     },
   },
+  user: {
+    // The new address gets a verification link; the change applies once it's opened.
+    changeEmail: { enabled: true },
+    deleteUser: {
+      enabled: true,
+      beforeDelete: async (user) => {
+        // A clinic must never be left without an owner: transfer or delete it first.
+        if ((await soleOwnedBusinesses(user.id)).length) {
+          throw new APIError("BAD_REQUEST", { message: "SOLE_OWNER", code: "SOLE_OWNER" });
+        }
+      },
+    },
+  },
   session: {
     expiresIn: 60 * 60 * 24 * 30,
     updateAge: 60 * 60 * 24,
     cookieCache: { enabled: true, maxAge: 5 * 60 },
   },
-  // Must stay last so Server Actions can set auth cookies.
-  plugins: [nextCookies()],
+  // Kept in Postgres so every server instance shares the counters.
+  rateLimit: {
+    enabled: process.env.NODE_ENV === "production",
+    storage: "database",
+    window: 60,
+    max: 100,
+    customRules: {
+      "/sign-in/email": { window: 10 * 60, max: 10 },
+      "/sign-up/email": { window: 60 * 60, max: 5 },
+      "/request-password-reset": { window: 60 * 60, max: 5 },
+      "/send-verification-email": { window: 60 * 60, max: 5 },
+      "/two-factor/*": { window: 10 * 60, max: 10 },
+    },
+  },
+  advanced: {
+    // Same source of truth as lib/rate-limit.ts clientIp().
+    ipAddress: { ipAddressHeaders: [process.env.TRUSTED_IP_HEADER ?? "x-real-ip"] },
+  },
+  plugins: [
+    twoFactor({ issuer: "Booking Widget" }),
+    // Platform roles for the super-admin: ban, impersonate, revoke sessions.
+    admin({ impersonationSessionDuration: 60 * 60 }),
+    // Must stay last so Server Actions can set auth cookies.
+    nextCookies(),
+  ],
 });
 
 export type Session = typeof auth.$Infer.Session;
