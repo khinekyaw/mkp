@@ -4,7 +4,8 @@ import { ThemeScope } from "@/components/booking/theme-scope";
 import { canCustomerCancel, getBookingDetails } from "@/lib/bookings/service";
 import { readSettings } from "@/lib/business/settings";
 import { constantTimeEqual } from "@/lib/crypto";
-import { INTL_LOCALE, MESSAGES, toLocale } from "@/lib/i18n";
+import { patientDate, patientTime } from "@/lib/format";
+import { MESSAGES, toLocale } from "@/lib/i18n";
 import { dateInZone } from "@/lib/scheduling/time";
 import { DEFAULT_THEME } from "@/lib/theme";
 import { CancelBooking } from "./cancel-booking";
@@ -30,8 +31,7 @@ export default async function ManagePage({ params, searchParams }: PageProps<"/m
   const locale = toLocale(lang ?? booking.locale);
   const t = MESSAGES[locale];
   const settings = readSettings(business.settings);
-  const fmtDate = new Intl.DateTimeFormat(INTL_LOCALE[locale], { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: business.timezone });
-  const fmtTime = new Intl.DateTimeFormat(INTL_LOCALE[locale], { hour: "numeric", minute: "2-digit", timeZone: business.timezone });
+  const time = (at: Date) => patientTime(at, business.timezone, locale);
   const theme = { ...(business.theme ?? DEFAULT_THEME), name: business.name };
   const tel = business.phone?.replace(/[^\d+]/g, "");
   const serviceName = locale === "my" && service.nameMy ? service.nameMy : service.name;
@@ -59,10 +59,10 @@ export default async function ManagePage({ params, searchParams }: PageProps<"/m
               {serviceName} · {provider.name}
             </Row>
             <Row icon={<CalendarDays />} label={t.date}>
-              {fmtDate.format(booking.startsAt)}
+              {patientDate(booking.startsAt, business.timezone, locale, true)}
             </Row>
             <Row icon={<Clock />} label={t.time}>
-              {fmtTime.format(booking.startsAt)} – {fmtTime.format(booking.endsAt)}
+              {time(booking.startsAt)} – {time(booking.endsAt)}
             </Row>
             {business.address ? (
               <Row icon={<MapPin />} label="Address">

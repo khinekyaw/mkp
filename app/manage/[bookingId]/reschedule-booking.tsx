@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Skeleton, Spinner } from "@/components/ui/misc";
-import { fmtTime } from "@/lib/format";
+import { patientTime } from "@/lib/format";
 import { MESSAGES, type Locale } from "@/lib/i18n";
 import { addDays } from "@/lib/scheduling/time";
 import { cn } from "@/lib/utils";
@@ -108,7 +108,7 @@ export function RescheduleBooking({
                 picked === start && "border-primary bg-primary text-primary-foreground hover:border-primary",
               )}
             >
-              {fmtTime(start, timezone, locale)}
+              {patientTime(start, timezone, locale)}
             </button>
           ))}
         </div>

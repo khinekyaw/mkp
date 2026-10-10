@@ -1,5 +1,5 @@
 import { dashEn, dashMy } from "./copy/dashboard";
-import type { Locale } from "./i18n";
+import { localDigits, type Locale } from "./i18n";
 
 // Dashboard formatting in the business timezone.
 //
@@ -57,13 +57,61 @@ export function fmtDate(
   return new Intl.DateTimeFormat("en-US", { ...opts, timeZone }).format(new Date(date));
 }
 
+/** Calendar parts of a YYYY-MM-DD date. */
+function dayParts(date: string) {
+  const [y, m, d] = date.split("-").map(Number);
+  return { y, m, d, weekday: new Date(Date.UTC(y, m - 1, d)).getUTCDay() };
+}
+
 /** Formats a YYYY-MM-DD local date without timezone shifts. */
 export function fmtLocalDate(date: string, opts: Intl.DateTimeFormatOptions = { weekday: "long", month: "long", day: "numeric" }, locale: Locale = "en") {
-  if (locale === "my") {
-    const [y, m, d] = date.split("-").map(Number);
-    return myDate({ y, m, d, weekday: new Date(Date.UTC(y, m - 1, d)).getUTCDay() }, opts);
-  }
+  if (locale === "my") return myDate(dayParts(date), opts);
   return new Intl.DateTimeFormat("en-US", { ...opts, timeZone: "UTC" }).format(new Date(`${date}T00:00:00Z`));
+}
+
+// Patient-facing formatting (booking widget, manage page, emails). Patients may
+// not read AM/PM or English month abbreviations, so Burmese spells everything
+// out the way it is said: Burmese digits, "အောက်တိုဘာလ ၁၀ ရက်၊ စနေနေ့", and a
+// time-of-day word before a 12-hour clock ("မနက် ၉:၀၀", "ညနေ ၄:၃၀").
+function myDayPeriod(hour: number) {
+  if (hour < 4) return "ည";
+  if (hour < 12) return "မနက်";
+  if (hour < 16) return "နေ့လည်";
+  if (hour < 19) return "ညနေ";
+  return "ည";
+}
+
+function myLongDate(p: { y: number; m: number; d: number; weekday: number }, withYear: boolean) {
+  const day = `${MY_MONTHS[p.m - 1]}လ ${localDigits(p.d, "my")} ရက်၊ ${dashMy.weekdays[p.weekday]}နေ့`;
+  return withYear ? `${localDigits(p.y, "my")} ခုနှစ်၊ ${day}` : day;
+}
+
+const longOpts = (withYear: boolean): Intl.DateTimeFormatOptions => ({ weekday: "long", month: "long", day: "numeric", ...(withYear ? { year: "numeric" } : {}) });
+
+/** Clock time for patients: "9:00 AM" / "မနက် ၉:၀၀". */
+export function patientTime(at: Date | string, timeZone: string, locale: Locale) {
+  if (locale !== "my") return fmtTime(at, timeZone);
+  const p = zonedParts(new Date(at), timeZone);
+  return `${myDayPeriod(p.hour)} ${localDigits(`${p.hour % 12 || 12}:${String(p.minute).padStart(2, "0")}`, "my")}`;
+}
+
+/** Full date of an instant for patients: "Saturday, October 10" / "အောက်တိုဘာလ ၁၀ ရက်၊ စနေနေ့". */
+export function patientDate(at: Date | string, timeZone: string, locale: Locale, withYear = false) {
+  if (locale === "my") return myLongDate(zonedParts(new Date(at), timeZone), withYear);
+  return fmtDate(at, timeZone, longOpts(withYear));
+}
+
+/** Full date of a YYYY-MM-DD day for patients. */
+export function patientLocalDate(date: string, locale: Locale, withYear = false) {
+  if (locale === "my") return myLongDate(dayParts(date), withYear);
+  return fmtLocalDate(date, longOpts(withYear));
+}
+
+/** The three lines of a date chip: weekday, day number and month. */
+export function patientDayLabels(date: string, locale: Locale) {
+  const p = dayParts(date);
+  if (locale === "my") return { weekday: dashMy.weekdays[p.weekday], day: localDigits(p.d, "my"), month: MY_MONTHS[p.m - 1] };
+  return { weekday: fmtLocalDate(date, { weekday: "short" }), day: String(p.d), month: fmtLocalDate(date, { month: "short" }) };
 }
 
 export function fmtMinutes(min: number, locale: Locale = "en") {
