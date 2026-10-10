@@ -47,6 +47,19 @@ export function passwordResetEmail({ to, name, url }: { to: string; name: string
   };
 }
 
+export function verifyEmailEmail({ to, name, url }: { to: string; name: string; url: string }): Email {
+  return {
+    to,
+    subject: "Confirm your email",
+    text: `Hi ${name},\n\nConfirm your email to finish creating your account: ${url}\n\nIf you didn't sign up, ignore this email.`,
+    html: layout({
+      heading: "Confirm your email",
+      body: `<p>Hi ${esc(name)}, click below to confirm your email and finish setting up your clinic. If you didn't sign up, you can ignore this email.</p>`,
+      cta: { label: "Confirm email", url },
+    }),
+  };
+}
+
 export type BookingEmailData = {
   businessName: string;
   businessPhone?: string | null;

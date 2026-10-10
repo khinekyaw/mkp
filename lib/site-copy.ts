@@ -122,6 +122,7 @@ const en = {
       title: "Welcome back",
       forgot: "Forgot password?",
       wrong: "Wrong email or password.",
+      unverified: "Please confirm your email first. We've sent you a new link.",
       failed: "Couldn't sign in.",
       submit: "Sign in",
       newHere: "New here?",
@@ -134,6 +135,8 @@ const en = {
       failed: "Couldn't create your account.",
       submit: "Create account",
       haveAccount: "Already have an account?",
+      checkTitle: "Check your email",
+      checkBody: (email: string) => `We've sent a confirmation link to ${email}. Open it to finish setting up your clinic.`,
       signIn: "Sign in",
     },
     forgot: {
@@ -294,6 +297,7 @@ const my: SiteCopy = {
       title: "ပြန်လည် ကြိုဆိုပါသည်",
       forgot: "စကားဝှက် မေ့နေပါသလား။",
       wrong: "အီးမေးလ် သို့မဟုတ် စကားဝှက် မှားနေပါသည်။",
+      unverified: "အီးမေးလ်ကို ဦးစွာ အတည်ပြုပေးပါ။ လင့်ခ်အသစ် ပို့ပေးလိုက်ပါပြီ။",
       failed: "အကောင့်ဝင်၍ မရပါ။",
       submit: "အကောင့်ဝင်ရန်",
       newHere: "အသစ်လား။",
@@ -306,6 +310,8 @@ const my: SiteCopy = {
       failed: "အကောင့် ဖွင့်၍ မရပါ။",
       submit: "အကောင့် ဖွင့်ရန်",
       haveAccount: "အကောင့် ရှိပြီးသားလား။",
+      checkTitle: "သင့်အီးမေးလ်ကို စစ်ကြည့်ပါ",
+      checkBody: (email: string) => `${email} သို့ အတည်ပြုလင့်ခ် ပို့ထားပါသည်။ ဆေးခန်း စတင်စီစဉ်ရန် ထိုလင့်ခ်ကို ဖွင့်ပါ။`,
       signIn: "အကောင့်ဝင်ရန်",
     },
     forgot: {

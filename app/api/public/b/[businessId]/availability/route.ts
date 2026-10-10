@@ -1,7 +1,6 @@
-import { eq } from "drizzle-orm";
 import { getAvailability, BookingError } from "@/lib/bookings/service";
 import { availabilityQuerySchema, type AvailabilityResponse } from "@/lib/bookings/public-api";
-import { db, schema } from "@/lib/db";
+import { findPublicBusinessRow } from "@/lib/business/public";
 import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export async function GET(request: Request, ctx: RouteContext<"/api/public/b/[businessId]/availability">) {
@@ -12,7 +11,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/public/b/[bu
   const query = availabilityQuerySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
   if (!query.success) return Response.json({ error: "Invalid query" }, { status: 400 });
 
-  const [business] = await db.select().from(schema.business).where(eq(schema.business.id, businessId)).limit(1);
+  const business = await findPublicBusinessRow(businessId);
   if (!business) return Response.json({ error: "Not found" }, { status: 404 });
 
   try {

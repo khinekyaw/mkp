@@ -95,6 +95,8 @@ export const verification = pgTable(
 // ---------------------------------------------------------------------------
 
 export const memberRole = pgEnum("member_role", ["owner", "admin", "staff"]);
+/** Set by the platform, not the clinic. Suspended: booking page, embed and public API go dark; the dashboard still works. */
+export const businessStatus = pgEnum("business_status", ["active", "suspended"]);
 
 export const business = pgTable("business", {
   id: id(),
@@ -107,6 +109,7 @@ export const business = pgTable("business", {
   address: text("address"),
   theme: jsonb("theme").$type<Theme>(),
   settings: jsonb("settings").$type<BusinessSettings>().notNull(),
+  status: businessStatus("status").notNull().default("active"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -351,3 +354,4 @@ export type Customer = typeof customer.$inferSelect;
 export type Booking = typeof booking.$inferSelect;
 export type BookingStatus = (typeof bookingStatus.enumValues)[number];
 export type MemberRole = (typeof memberRole.enumValues)[number];
+export type BusinessStatus = (typeof businessStatus.enumValues)[number];

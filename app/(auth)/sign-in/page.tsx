@@ -29,10 +29,18 @@ function SignInForm() {
     const { error } = await signIn.email({
       email: String(form.get("email")),
       password: String(form.get("password")),
+      // Where the fresh confirmation link lands if the email isn't verified yet.
+      callbackURL: next,
     });
     if (error) {
       setPending(false);
-      setError(error.status === 401 ? t.auth.signIn.wrong : (error.message ?? t.auth.signIn.failed));
+      setError(
+        error.status === 401
+          ? t.auth.signIn.wrong
+          : error.code === "EMAIL_NOT_VERIFIED"
+            ? t.auth.signIn.unverified
+            : (error.message ?? t.auth.signIn.failed),
+      );
       return;
     }
     router.replace(next);

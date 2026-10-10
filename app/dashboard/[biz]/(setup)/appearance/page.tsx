@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AppearancePage({ params, searchParams }: PageProps<"/dashboard/[biz]/appearance">) {
   const [{ biz }, query] = await Promise.all([params, searchParams]);
   const [{ business }, { t }] = await Promise.all([requireBusiness(biz, "admin"), getSiteCopy()]);
-  const publicBusiness = await getPublicBusiness({ id: business.id });
+  const publicBusiness = await getPublicBusiness({ id: business.id }, { includeSuspended: true });
   if (!publicBusiness) notFound();
 
   return (

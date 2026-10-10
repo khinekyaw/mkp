@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -12,8 +11,9 @@ import { AuthCard, TextLink } from "../auth-form";
 
 export default function SignUpPage() {
   const { t } = useSiteCopy();
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  // Set once the account exists; no session until the confirmation link is opened.
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -21,18 +21,27 @@ export default function SignUpPage() {
     const form = new FormData(e.currentTarget);
     setPending(true);
     setError(null);
+    const email = String(form.get("email")).trim();
     const { error } = await signUp.email({
       name: String(form.get("name")).trim(),
-      email: String(form.get("email")).trim(),
+      email,
       password: String(form.get("password")),
+      callbackURL: "/onboarding",
     });
+    setPending(false);
     if (error) {
-      setPending(false);
       setError(error.message ?? t.auth.signUp.failed);
       return;
     }
-    router.replace("/onboarding");
-    router.refresh();
+    setSentTo(email);
+  }
+
+  if (sentTo) {
+    return (
+      <AuthCard title={t.auth.signUp.checkTitle} footer={<TextLink href="/sign-in">{t.auth.backToSignIn}</TextLink>}>
+        <p className="text-sm">{t.auth.signUp.checkBody(sentTo)}</p>
+      </AuthCard>
+    );
   }
 
   return (

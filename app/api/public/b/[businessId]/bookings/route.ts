@@ -1,8 +1,7 @@
-import { eq } from "drizzle-orm";
 import { after } from "next/server";
 import { createBookingSchema, type BookingConfirmation } from "@/lib/bookings/public-api";
 import { BookingError, createBooking, getBookingDetails } from "@/lib/bookings/service";
-import { db, schema } from "@/lib/db";
+import { findPublicBusinessRow } from "@/lib/business/public";
 import { notifyBookingCreated } from "@/lib/notifications/booking";
 import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
@@ -20,7 +19,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/public/b/[b
   }
   const input = parsed.data;
 
-  const [business] = await db.select().from(schema.business).where(eq(schema.business.id, businessId)).limit(1);
+  const business = await findPublicBusinessRow(businessId);
   if (!business) return Response.json({ error: "Not found" }, { status: 404 });
 
   try {
