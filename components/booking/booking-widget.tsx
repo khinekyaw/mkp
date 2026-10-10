@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Clock } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
@@ -9,7 +9,8 @@ import { Skeleton, Spinner } from "@/components/ui/misc";
 import type { AvailabilityResponse, BookingConfirmation } from "@/lib/bookings/public-api";
 import type { PublicBusiness } from "@/lib/business/public";
 import { PROVIDER_LABEL } from "@/lib/business/settings";
-import { formatPrice, INTL_LOCALE, LOCALE_LABEL, MESSAGES, type Locale } from "@/lib/i18n";
+import { patientDate, patientDayLabels, patientLocalDate, patientTime } from "@/lib/format";
+import { formatPrice, localDigits, LOCALE_LABEL, MESSAGES, type Locale } from "@/lib/i18n";
 import { addDays, dateInZone } from "@/lib/scheduling/time";
 import { cn } from "@/lib/utils";
 import type { BookingApi } from "./api";
@@ -90,34 +91,41 @@ export function BookingWidget({
   const effectiveProvider = providerId && service?.providerIds.includes(providerId) ? providerId : null;
   const showProviderChoice = business.allowProviderChoice && serviceProviders.length > 1;
 
-  const key = `${service?.id}|${effectiveProvider ?? "any"}|${windowStart}|${reloadKey}`;
+  const keyFor = (from: string) => `${service?.id}|${effectiveProvider ?? "any"}|${from}|${reloadKey}`;
+  const key = keyFor(windowStart);
   const entry = cache[key];
   const data = entry && entry !== "error" ? entry : null;
+  const horizonEnd = addDays(today, business.horizonDays);
+  const nextStart = addDays(windowStart, WINDOW_DAYS);
+  const canGoBack = windowStart > today;
+  const canGoForward = nextStart < horizonEnd;
 
   // Each key is fetched once; results are stored by key, so late responses are harmless.
+  // Once a window loads, the next one is prefetched so "Later dates" swaps in without
+  // a skeleton (and the layout shift that comes with it).
   const requested = useRef(new Set<string>());
   const currentServiceId = service?.id;
+  const loaded = entry !== undefined;
+  const nextKey = canGoForward ? keyFor(nextStart) : null;
   useEffect(() => {
-    if (!currentServiceId || requested.current.has(key)) return;
-    requested.current.add(key);
-    api
-      .availability({ serviceId: currentServiceId, providerId: effectiveProvider, from: windowStart, days: WINDOW_DAYS })
-      .then((res) => setCache((c) => ({ ...c, [key]: res })))
-      .catch(() => setCache((c) => ({ ...c, [key]: "error" })));
-  }, [api, key, currentServiceId, effectiveProvider, windowStart]);
-
-  const fmt = useMemo(() => {
-    const l = INTL_LOCALE[locale];
-    return {
-      weekday: new Intl.DateTimeFormat(l, { weekday: "short", timeZone: "UTC" }),
-      day: new Intl.DateTimeFormat(l, { day: "numeric", timeZone: "UTC" }),
-      month: new Intl.DateTimeFormat(l, { month: "short", timeZone: "UTC" }),
-      fullDate: new Intl.DateTimeFormat(l, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" }),
-      time: new Intl.DateTimeFormat(l, { hour: "numeric", minute: "2-digit", timeZone: tz }),
-      long: new Intl.DateTimeFormat(l, { weekday: "long", month: "long", day: "numeric", timeZone: tz }),
+    if (!currentServiceId) return;
+    const load = (k: string, from: string) => {
+      if (requested.current.has(k)) return;
+      requested.current.add(k);
+      api
+        .availability({ serviceId: currentServiceId, providerId: effectiveProvider, from, days: WINDOW_DAYS })
+        .then((res) => setCache((c) => ({ ...c, [k]: res })))
+        .catch(() => setCache((c) => ({ ...c, [k]: "error" })));
     };
-  }, [locale, tz]);
-  const utcDate = (d: string) => new Date(`${d}T00:00:00Z`);
+    load(key, windowStart);
+    if (loaded && nextKey) load(nextKey, nextStart);
+  }, [api, key, currentServiceId, effectiveProvider, windowStart, loaded, nextKey, nextStart]);
+
+  const time = (at: string) => patientTime(at, tz, locale);
+  // Burmese chips spell out the weekday and month ("ကြာသပတေး", "အောက်တိုဘာ").
+  const chipWidth = locale === "my" ? "w-20" : "w-14";
+  // A glyph in the chip's script, so skeleton lines get the same height (Myanmar lines are taller).
+  const placeholder = localDigits(0, locale);
 
   const days = data?.days ?? [];
   const activeDate =
@@ -125,9 +133,6 @@ export function BookingWidget({
     days.find((d) => d.slots.length)?.date ??
     null;
   const activeDay = days.find((d) => d.date === activeDate);
-  const horizonEnd = addDays(today, business.horizonDays);
-  const canGoBack = windowStart > today;
-  const canGoForward = addDays(windowStart, WINDOW_DAYS) < horizonEnd;
   const providerLabel = PROVIDER_LABEL[business.vertical][locale];
   const serviceName = (s: { name: string; nameMy: string | null }) => (locale === "my" && s.nameMy ? s.nameMy : s.name);
 
@@ -300,24 +305,34 @@ export function BookingWidget({
             </div>
             <div ref={stripRef} className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
               {data
-                ? days.map((d) => (
-                    <Choice
-                      key={d.date}
-                      selected={d.date === activeDate}
-                      disabled={!d.slots.length}
-                      aria-label={fmt.fullDate.format(utcDate(d.date))}
-                      onClick={() => {
-                        setPickedDate(d.date);
-                        setSlot(null);
-                      }}
-                      className="flex w-14 shrink-0 flex-col items-center gap-0.5 py-2"
-                    >
-                      <span className="text-[11px] opacity-70">{fmt.weekday.format(utcDate(d.date))}</span>
-                      <span className="text-base font-semibold leading-tight">{fmt.day.format(utcDate(d.date))}</span>
-                      <span className="text-[11px] opacity-70">{d.open ? fmt.month.format(utcDate(d.date)) : t.closed}</span>
-                    </Choice>
-                  ))
-                : Array.from({ length: 7 }, (_, i) => <Skeleton key={i} className="h-[66px] w-14 shrink-0" />)}
+                ? days.map((d) => {
+                    const label = patientDayLabels(d.date, locale);
+                    return (
+                      <Choice
+                        key={d.date}
+                        selected={d.date === activeDate}
+                        disabled={!d.slots.length}
+                        aria-label={patientLocalDate(d.date, locale)}
+                        onClick={() => {
+                          setPickedDate(d.date);
+                          setSlot(null);
+                        }}
+                        className={cn("flex shrink-0 flex-col items-center gap-0.5 py-2", chipWidth)}
+                      >
+                        <span className="text-[11px] opacity-70">{label.weekday}</span>
+                        <span className="text-base font-semibold leading-tight">{label.day}</span>
+                        <span className="text-[11px] opacity-70">{d.open ? label.month : t.closed}</span>
+                      </Choice>
+                    );
+                  })
+                : Array.from({ length: 7 }, (_, i) => (
+                    // Same box as a date chip, so loading never changes the row height.
+                    <Skeleton key={i} aria-hidden className={cn("flex shrink-0 flex-col items-center gap-0.5 border border-transparent py-2 text-sm", chipWidth)}>
+                      <span className="invisible text-[11px]">{placeholder}</span>
+                      <span className="invisible text-base font-semibold leading-tight">{placeholder}</span>
+                      <span className="invisible text-[11px]">{placeholder}</span>
+                    </Skeleton>
+                  ))}
             </div>
           </section>
 
@@ -340,7 +355,7 @@ export function BookingWidget({
               <div className="grid grid-cols-3 gap-2 @sm:grid-cols-4">
                 {activeDay.slots.map((s) => (
                   <Choice key={s.start} selected={slot === s.start} onClick={() => setSlot(s.start)} className="h-10 tabular-nums">
-                    {fmt.time.format(new Date(s.start))}
+                    {time(s.start)}
                   </Choice>
                 ))}
               </div>
@@ -371,7 +386,7 @@ export function BookingWidget({
                 {effectiveProvider ? ` · ${business.providers.find((p) => p.id === effectiveProvider)?.name}` : ""}
               </p>
               <p className="text-muted-foreground">
-                {fmt.long.format(new Date(slot))} · {fmt.time.format(new Date(slot))}
+                {patientDate(slot, tz, locale)} · {time(slot)}
               </p>
             </div>
           </div>
@@ -426,7 +441,7 @@ export function BookingWidget({
               {confirmation.providerName ? ` · ${confirmation.providerName}` : ""}
             </p>
             <p className="text-sm">
-              {fmt.long.format(new Date(confirmation.start))}, {fmt.time.format(new Date(confirmation.start))}
+              {patientDate(confirmation.start, tz, locale)} · {time(confirmation.start)}
             </p>
             <p className="mt-1 max-w-xs text-sm text-muted-foreground">
               {confirmation.status === "pending" ? t.requestedBody : t.bookedBody}

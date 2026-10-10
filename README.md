@@ -84,7 +84,7 @@ No database install is needed: without `DATABASE_URL`, the app uses **PGlite** (
 | Command | What it does |
 | --- | --- |
 | `pnpm dev` | Migrate + seed if empty, then `next dev` |
-| `pnpm test` | Unit tests (scheduling engine, phone normalization) |
+| `pnpm test` | Unit tests (scheduling, formatting, phone numbers, Zawgyi, SSRF guard, reminder timing) |
 | `pnpm typecheck` / `pnpm lint` | TypeScript / ESLint |
 | `pnpm db:generate` | Create a SQL migration after editing `lib/db/schema.ts` |
 | `pnpm db:migrate` | Apply migrations |
@@ -95,6 +95,14 @@ No database install is needed: without `DATABASE_URL`, the app uses **PGlite** (
 PGlite allows only one process at a time, so stop `pnpm dev` before running `db:*` scripts.
 
 PGlite can't recover a database killed mid-write. Stop the dev server with Ctrl+C (it closes the database cleanly); if a database is ever unreadable anyway, `pnpm dev` moves it to `.data/pglite-broken-*` and starts fresh with the demo clinic. For local data that must survive, point `DATABASE_URL` at a local Postgres.
+
+#### Accounts in development
+
+- **Demo owner:** `owner@golden-lotus.test`, password in `scripts/db.ts` (`DEMO`). Already verified; owns Golden Lotus Clinic.
+- **Your own account:** sign up at `/sign-up`. Without `RESEND_API_KEY` no email is sent: every email (confirmation link, password reset, team invite, booking emails) is printed in the `pnpm dev` terminal as a `✉️ [mail]` block. Open the link from there. Signing up with an email that already has an account sends a "You already have an account" email instead.
+- **Platform admin:** stop `pnpm dev`, run `pnpm admin:grant <email>`, start again and open `/admin`. Two-step verification is required for admins in production only.
+- **Staff:** invite from *Setup → Team*; the invite link prints in the terminal too.
+- **Scheduled jobs** (reminders, retries) run when requests come in; `curl localhost:3000/api/cron/jobs` runs whatever is due.
 
 ### Environment
 
@@ -167,7 +175,21 @@ Every surface of our own uses one look: a soft grey canvas, white rounded cards,
 - **Scheduling.** Rules are wall-clock times in the business timezone (weekly intervals per provider or business, time off, closures, lead time, horizon, slot interval). `lib/scheduling/availability.ts` is pure and tested, including DST zones.
 - **One UI kit, many brands.** Components read CSS variables; `ThemeScope` overrides them per business, which relies on Tailwind's `@theme inline`. The widget uses container queries, so it lays out by its own width inside any host page.
 - **Embeds by id, themes from the server.** Changing the theme in the dashboard updates every embed instantly; slugs can change without breaking embeds.
+- **Side effects go through the job queue.** Emails and reminders are rows in `job`, retried with backoff (`lib/jobs`), never fire-and-forget. A reminder's dedupe key (`reminder:<bookingId>`) lets a reschedule replace it and a cancel drop it.
+- **Everything that changes a booking, the team or a clinic is audited** (`audit()` in `lib/audit.ts`), with the actor: staff, patient, platform admin (with a reason) or system.
+- **Public surfaces only see active clinics.** `getPublicBusiness` / `findPublicBusinessRow` hide suspended and deleted clinics and honor maintenance mode; the booking page and embed then show a "not taking online bookings" notice.
+- **Limits are shared.** Rate limits and the AI budget live in Postgres (`lib/rate-limit.ts`), so they hold across server instances; the client IP comes only from a trusted header.
+- **Patient text reads the way it's said.** Burmese patients get Burmese digits, spelled-out dates and "မနက် ၉:၀၀"-style times (`patientDate` / `patientTime` in `lib/format.ts`); Zawgyi input is converted to Unicode on the way in.
 
 ### Deploying
 
-Vercel (or any Node host) + Neon Postgres + Resend. Set the environment variables above, run `pnpm db:migrate` against the production database (for example as part of the build command: `pnpm db:migrate && pnpm build`), then deploy. Before real patient data: add the Phase 2 items around staff accounts/roles, reminders, and a shared rate limiter (Redis) if you run multiple instances.
+Vercel Pro (the 5-minute cron in `vercel.json` needs it) + Neon Postgres in Singapore + Resend.
+
+1. Create the Neon database in `ap-southeast-1` and use its pooled (`-pooler`) connection string as `DATABASE_URL`. Turn on point-in-time restore.
+2. Verify your sending domain in Resend; set `RESEND_API_KEY` and `EMAIL_FROM`.
+3. Set `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL` and `CRON_SECRET`, plus the optional ones in `.env.example` (Turnstile, support link, legal entity and contact, error webhook).
+4. Build with migrations: `pnpm db:migrate && pnpm build`.
+5. Sign up with your own email, then `pnpm admin:grant <email>` against the production database, and turn on two-step verification before opening `/admin`.
+6. Point an uptime monitor at `/api/health`.
+
+What's done and what's still open is tracked in `docs/platform-plan.md` ("Launch readiness").
